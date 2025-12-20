@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, Layout, Spin, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -38,14 +38,10 @@ const App: React.FC = () => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        if (token) {
-          // 验证token是否有效
-          const response = await apiClient.auth.profile();
-          if (response.success && response.data) {
-            login(token, response.data);
-          } else {
-            logout();
-          }
+        const userStr = localStorage.getItem('user');
+        if (token && userStr) {
+          const user = JSON.parse(userStr);
+          login(token, user);
         }
       } catch (error) {
         logout();
@@ -87,33 +83,33 @@ const App: React.FC = () => {
     <ConfigProvider locale={zhCN}>
       <QueryClientProvider client={queryClient}>
         <AntdApp>
-          <Router>
-            <Layout className="min-h-screen">
-              <AppHeader />
-              <Layout>
-                <AppSidebar />
-                <Layout 
-                  className="transition-all duration-200" 
-                  style={{ 
-                    marginLeft: sidebarCollapsed ? 80 : 200 
-                  }}
-                >
-                  <Content className="p-6 bg-gray-50">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/content" element={<ContentGenerator />} />
-                      <Route path="/accounts" element={<Accounts />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/state-machine" element={<StateMachineEditor />} />
-                      <Route path="/auth" element={<Navigate to="/" replace />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Content>
-                </Layout>
+          <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+            <AppHeader />
+            <Layout style={{ backgroundColor: '#f0f2f5' }}>
+              <AppSidebar />
+              <Layout 
+                className="transition-all duration-200" 
+                style={{ 
+                  marginLeft: sidebarCollapsed ? 80 : 200,
+                  marginTop: 64,
+                  backgroundColor: '#f0f2f5'
+                }}
+              >
+                <Content className="p-6">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/content" element={<ContentGenerator />} />
+                    <Route path="/accounts" element={<Accounts />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/state-machine" element={<StateMachineEditor />} />
+                    <Route path="/auth" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Content>
               </Layout>
             </Layout>
-          </Router>
+          </Layout>
         </AntdApp>
       </QueryClientProvider>
     </ConfigProvider>

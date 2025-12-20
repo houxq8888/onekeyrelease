@@ -8,11 +8,13 @@ import {
   SettingOutlined 
 } from '@ant-design/icons';
 import { useAppStore } from '@store/appStore';
+import { useAuthStore } from '@store/authStore';
 
 const { Header } = Layout;
 
 const AppHeader: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { logout, user } = useAuthStore();
 
   const userMenuItems = [
     {
@@ -40,7 +42,9 @@ const AppHeader: React.FC = () => {
     switch (key) {
       case 'logout':
         // 处理退出登录
+        logout();
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
         window.location.href = '/';
         break;
       case 'settings':
@@ -52,7 +56,7 @@ const AppHeader: React.FC = () => {
   };
 
   return (
-    <Header className="bg-white shadow-sm border-b border-gray-200 px-6 flex items-center justify-between">
+    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
       <div className="flex items-center">
         <Button
           type="text"
@@ -75,14 +79,14 @@ const AppHeader: React.FC = () => {
             }}
             placement="bottomRight"
           >
-            <div className="flex items-center cursor-pointer hover:bg-gray-100 px-3 py-1 rounded">
+            <Button type="text" className="flex items-center">
               <Avatar 
                 size="small" 
                 icon={<UserOutlined />} 
-                className="bg-primary-500"
+                className="bg-primary-500 mr-2"
               />
-              <span className="ml-2 text-gray-700">管理员</span>
-            </div>
+              <span className="text-gray-700">{user?.username || '管理员'}</span>
+            </Button>
           </Dropdown>
         </Space>
       </div>

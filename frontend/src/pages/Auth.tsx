@@ -19,6 +19,7 @@ import {
 import { useMutation } from 'react-query';
 import { apiClient } from '@utils/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@store/authStore';
 
 const { Title, Text } = Typography;
 
@@ -26,13 +27,16 @@ const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { login } = useAuthStore();
 
   // 登录请求
   const loginMutation = useMutation(apiClient.auth.login, {
     onSuccess: (data) => {
       message.success('登录成功');
+      // 更新认证状态
+      login(data.token, data.user);
       // 存储token到localStorage
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       // 跳转到仪表板
       navigate('/dashboard');

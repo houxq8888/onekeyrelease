@@ -60,7 +60,7 @@ const AppSidebar: React.FC = () => {
       trigger={null} 
       collapsible 
       collapsed={sidebarCollapsed}
-      className="fixed left-0 h-full z-10"
+      className="fixed left-0 h-full z-10 bg-white border-r border-gray-200"
       style={{
         overflow: 'auto',
         height: '100vh',
@@ -68,9 +68,11 @@ const AppSidebar: React.FC = () => {
         left: 0,
         top: 64,
         bottom: 0,
+        backgroundColor: '#ffffff',
       }}
+      theme="light"
     >
-      <div className="h-full bg-white border-r border-gray-200">
+      <div className="h-full">
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
