@@ -83,8 +83,9 @@ export const apiClient = {
   // 认证相关
   auth: {
     login: (data: any) => api.post<ApiResponse>('/auth/login', data),
+    register: (data: any) => api.post<ApiResponse>('/auth/register', data),
     logout: () => api.post<ApiResponse>('/auth/logout'),
-    profile: () => api.get<ApiResponse>('/auth/profile'),
+    profile: () => api.get<ApiResponse>('/auth/me'),
   },
 };
 

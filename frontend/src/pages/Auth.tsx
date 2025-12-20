@@ -19,6 +19,7 @@ import {
 import { useMutation } from 'react-query';
 import { apiClient } from '@utils/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@store/authStore';
 
 const { Title, Text } = Typography;
 
@@ -26,14 +27,16 @@ const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { login } = useAuthStore();
 
   // 登录请求
-  const loginMutation = useMutation(apiClient.auth.login, {
+  const loginMutation = useMutation<any, any, any>(apiClient.auth.login, {
     onSuccess: (data) => {
       message.success('登录成功');
-      // 存储token到localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // 更新认证状态
+      login(data.data?.token || data.token, data.data?.user || data.user);
+      localStorage.setItem('auth_token', data.data?.token || data.token);
+      localStorage.setItem('user', JSON.stringify(data.data?.user || data.user));
       // 跳转到仪表板
       navigate('/dashboard');
     },
@@ -43,7 +46,7 @@ const Auth: React.FC = () => {
   });
 
   // 注册请求
-  const registerMutation = useMutation(apiClient.auth.register, {
+  const registerMutation = useMutation<any, any, any>(apiClient.auth.register, {
     onSuccess: () => {
       message.success('注册成功，请登录');
       setIsLogin(true);

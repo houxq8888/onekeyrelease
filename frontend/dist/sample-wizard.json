@@ -1,0 +1,212 @@
+{
+  "name": "小红书内容发布流程",
+  "version": "1.0.0",
+  "description": "自动化发布小红书内容的完整状态机流程",
+  "states": [
+    {
+      "id": "start",
+      "name": "开始发布",
+      "type": "start",
+      "x": 50,
+      "y": 100,
+      "transitions": [
+        {
+          "id": "t1",
+          "fromState": "start",
+          "toState": "login",
+          "condition": "用户已登录"
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "name": "账号登录",
+      "type": "normal",
+      "x": 200,
+      "y": 100,
+      "transitions": [
+        {
+          "id": "t2",
+          "fromState": "login",
+          "toState": "content_check",
+          "condition": "登录成功"
+        },
+        {
+          "id": "t3",
+          "fromState": "login",
+          "toState": "error",
+          "condition": "登录失败"
+        }
+      ]
+    },
+    {
+      "id": "content_check",
+      "name": "内容检查",
+      "type": "decision",
+      "x": 350,
+      "y": 100,
+      "transitions": [
+        {
+          "id": "t4",
+          "fromState": "content_check",
+          "toState": "generate_content",
+          "condition": "需要生成内容"
+        },
+        {
+          "id": "t5",
+          "fromState": "content_check",
+          "toState": "upload_content",
+          "condition": "已有内容"
+        }
+      ]
+    },
+    {
+      "id": "generate_content",
+      "name": "生成内容",
+      "type": "normal",
+      "x": 500,
+      "y": 50,
+      "transitions": [
+        {
+          "id": "t6",
+          "fromState": "generate_content",
+          "toState": "upload_content",
+          "condition": "内容生成完成"
+        }
+      ]
+    },
+    {
+      "id": "upload_content",
+      "name": "上传内容",
+      "type": "normal",
+      "x": 500,
+      "y": 150,
+      "transitions": [
+        {
+          "id": "t7",
+          "fromState": "upload_content",
+          "toState": "publish",
+          "condition": "上传成功"
+        },
+        {
+          "id": "t8",
+          "fromState": "upload_content",
+          "toState": "error",
+          "condition": "上传失败"
+        }
+      ]
+    },
+    {
+      "id": "publish",
+      "name": "发布内容",
+      "type": "normal",
+      "x": 650,
+      "y": 100,
+      "transitions": [
+        {
+          "id": "t9",
+          "fromState": "publish",
+          "toState": "end",
+          "condition": "发布成功"
+        },
+        {
+          "id": "t10",
+          "fromState": "publish",
+          "toState": "error",
+          "condition": "发布失败"
+        }
+      ]
+    },
+    {
+      "id": "error",
+      "name": "错误处理",
+      "type": "normal",
+      "x": 350,
+      "y": 200,
+      "transitions": [
+        {
+          "id": "t11",
+          "fromState": "error",
+          "toState": "end",
+          "condition": "错误已处理"
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "name": "发布完成",
+      "type": "end",
+      "x": 800,
+      "y": 100,
+      "transitions": []
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t1",
+      "fromState": "start",
+      "toState": "login",
+      "condition": "用户已登录"
+    },
+    {
+      "id": "t2",
+      "fromState": "login",
+      "toState": "content_check",
+      "condition": "登录成功"
+    },
+    {
+      "id": "t3",
+      "fromState": "login",
+      "toState": "error",
+      "condition": "登录失败"
+    },
+    {
+      "id": "t4",
+      "fromState": "content_check",
+      "toState": "generate_content",
+      "condition": "需要生成内容"
+    },
+    {
+      "id": "t5",
+      "fromState": "content_check",
+      "toState": "upload_content",
+      "condition": "已有内容"
+    },
+    {
+      "id": "t6",
+      "fromState": "generate_content",
+      "toState": "upload_content",
+      "condition": "内容生成完成"
+    },
+    {
+      "id": "t7",
+      "fromState": "upload_content",
+      "toState": "publish",
+      "condition": "上传成功"
+    },
+    {
+      "id": "t8",
+      "fromState": "upload_content",
+      "toState": "error",
+      "condition": "上传失败"
+    },
+    {
+      "id": "t9",
+      "fromState": "publish",
+      "toState": "end",
+      "condition": "发布成功"
+    },
+    {
+      "id": "t10",
+      "fromState": "publish",
+      "toState": "error",
+      "condition": "发布失败"
+    },
+    {
+      "id": "t11",
+      "fromState": "error",
+      "toState": "end",
+      "condition": "错误已处理"
+    }
+  ]
+}

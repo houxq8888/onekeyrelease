@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, Layout, Spin, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -87,33 +87,32 @@ const App: React.FC = () => {
     <ConfigProvider locale={zhCN}>
       <QueryClientProvider client={queryClient}>
         <AntdApp>
-          <Router>
-            <Layout className="min-h-screen">
-              <AppHeader />
-              <Layout>
-                <AppSidebar />
-                <Layout 
-                  className="transition-all duration-200" 
-                  style={{ 
-                    marginLeft: sidebarCollapsed ? 80 : 200 
-                  }}
-                >
-                  <Content className="p-6 bg-gray-50">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/content" element={<ContentGenerator />} />
-                      <Route path="/accounts" element={<Accounts />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/state-machine" element={<StateMachineEditor />} />
-                      <Route path="/auth" element={<Navigate to="/" replace />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Content>
-                </Layout>
-              </Layout>
+          <Layout className="min-h-screen bg-white">
+            <AppHeader />
+            <Layout style={{ marginTop: 64 }}>
+              <AppSidebar />
+              <Content 
+                className="bg-gray-50" 
+                style={{ 
+                  marginLeft: sidebarCollapsed ? 80 : 200, 
+                  padding: 24, 
+                  minHeight: 'calc(100vh - 64px)',
+                  transition: 'margin-left 0.2s ease'
+                }}
+              >
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/content" element={<ContentGenerator />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/state-machine" element={<StateMachineEditor />} />
+                  <Route path="/auth" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Content>
             </Layout>
-          </Router>
+          </Layout>
         </AntdApp>
       </QueryClientProvider>
     </ConfigProvider>
