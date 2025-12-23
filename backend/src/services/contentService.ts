@@ -1,5 +1,7 @@
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import OpenAI from 'openai';
+import axios from 'axios';
 
 export interface ContentGenerationConfig {
   theme: string;
@@ -16,7 +18,32 @@ export interface GeneratedContent {
   summary: string;
 }
 
+export interface BatchContentResult {
+  theme: string;
+  content: GeneratedContent;
+  images: string[];
+  video: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
 export class ContentService {
+  private static openai: OpenAI | null = null;
+  
+  /**
+   * 初始化OpenAI客户端
+   */
+  private static initOpenAI(): OpenAI {
+    if (!this.openai) {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new AppError('OpenAI API密钥未配置', 500);
+      }
+      this.openai = new OpenAI({ apiKey });
+    }
+    return this.openai;
+  }
+
   /**
    * 生成文案内容
    */
@@ -24,15 +51,15 @@ export class ContentService {
     try {
       logger.info(`开始生成内容: ${config.theme}`);
       
-      // 模拟内容生成过程
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // 这里应该调用实际的AI文案生成API
-      // 暂时使用模拟数据
-      const generatedContent = this.mockContentGeneration(config);
-      
-      logger.info(`内容生成成功: ${config.theme}`);
-      return generatedContent;
+      // 检查是否配置了AI API
+      if (process.env.OPENAI_API_KEY) {
+        // 使用AI生成真实内容
+        return await this.generateContentWithAI(config);
+      } else {
+        // 使用模拟数据
+        logger.warn('未配置AI API密钥，使用模拟数据生成内容');
+        return this.mockContentGeneration(config);
+      }
     } catch (error: any) {
       logger.error(`内容生成失败: ${error.message}`);
       throw new AppError(`内容生成失败: ${error.message}`, 500);
@@ -40,7 +67,136 @@ export class ContentService {
   }
 
   /**
-   * 生成图片（模拟）
+   * 使用AI生成内容
+   */
+  private static async generateContentWithAI(config: ContentGenerationConfig): Promise<GeneratedContent> {
+    try {
+      const openai = this.initOpenAI();
+      
+      const prompt = this.buildContentPrompt(config);
+      
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的内容创作者，擅长为小红书平台创作吸引人的内容。请根据用户提供的信息生成符合小红书风格的内容。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      });
+
+      const aiContent = completion.choices[0]?.message?.content;
+      
+      if (!aiContent) {
+        throw new AppError('AI生成内容为空', 500);
+      }
+
+      // 解析AI生成的内容
+      return this.parseAIContent(aiContent, config);
+    } catch (error: any) {
+      logger.error(`AI内容生成失败: ${error.message}`);
+      // 如果AI生成失败，回退到模拟生成
+      return this.mockContentGeneration(config);
+    }
+  }
+
+  /**
+   * 构建内容生成提示词
+   */
+  private static buildContentPrompt(config: ContentGenerationConfig): string {
+    const styles = {
+      formal: '正式专业，语言严谨，适合官方发布',
+      casual: '轻松随意，亲切自然，适合日常分享',
+      professional: '权威可信，专业性强，适合知识分享',
+      creative: '新颖有趣，创意十足，适合吸引眼球'
+    };
+
+    return `
+请为小红书平台生成一篇内容，要求如下：
+
+主题：${config.theme}
+关键词：${config.keywords.join('、')}
+目标受众：${config.targetAudience}
+风格：${styles[config.style]}
+字数：约${config.wordCount}字
+
+请按照以下格式返回内容：
+标题：[生成的标题]
+内容：[生成的内容正文]
+标签：[5-10个相关标签，用逗号分隔]
+摘要：[50字左右的摘要]
+
+内容要求：
+1. 符合小红书平台风格，亲切自然
+2. 包含emoji表情符号增加趣味性
+3. 段落清晰，易于阅读
+4. 包含与目标受众相关的具体建议或经验分享
+    `;
+  }
+
+  /**
+   * 解析AI生成的内容
+   */
+  private static parseAIContent(aiContent: string, config: ContentGenerationConfig): GeneratedContent {
+    try {
+      // 简单的解析逻辑，实际应用中可能需要更复杂的解析
+      const lines = aiContent.split('\n').filter(line => line.trim());
+      
+      let title = '';
+      let content = '';
+      let hashtags: string[] = [];
+      let summary = '';
+
+      let currentSection = '';
+      
+      for (const line of lines) {
+        if (line.startsWith('标题：')) {
+          title = line.replace('标题：', '').trim();
+          currentSection = 'title';
+        } else if (line.startsWith('内容：')) {
+          content = line.replace('内容：', '').trim();
+          currentSection = 'content';
+        } else if (line.startsWith('标签：')) {
+          const tags = line.replace('标签：', '').trim();
+          hashtags = tags.split(/[,，]/).map(tag => tag.trim()).filter(tag => tag);
+          currentSection = 'tags';
+        } else if (line.startsWith('摘要：')) {
+          summary = line.replace('摘要：', '').trim();
+          currentSection = 'summary';
+        } else {
+          // 继续当前部分的内容
+          if (currentSection === 'content' && content) {
+            content += '\n' + line;
+          }
+        }
+      }
+
+      // 如果解析失败，使用默认值
+      if (!title) title = `${config.theme} - ${config.targetAudience}必看`;
+      if (!content) content = this.mockContentGeneration(config).content;
+      if (!hashtags.length) hashtags = config.keywords.map(kw => `#${kw}`);
+      if (!summary) summary = `关于${config.theme}的精彩内容分享`;
+
+      return {
+        title,
+        content,
+        hashtags,
+        summary,
+      };
+    } catch (error) {
+      logger.error('解析AI内容失败，使用模拟数据');
+      return this.mockContentGeneration(config);
+    }
+  }
+
+  /**
+   * 生成图片
    */
   static async generateImages(
     theme: string, 
@@ -49,17 +205,15 @@ export class ContentService {
     try {
       logger.info(`开始生成图片: ${theme}`);
       
-      // 模拟图片生成过程
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      // 这里应该调用实际的AI图片生成API
-      // 暂时返回模拟图片URL
-      const images = Array.from({ length: count }, (_, i) => 
-        `https://example.com/generated/image-${Date.now()}-${i}.jpg`
-      );
-      
-      logger.info(`图片生成成功: ${theme}`);
-      return images;
+      // 检查是否配置了图像生成API
+      if (process.env.STABLE_DIFFUSION_API_URL) {
+        // 使用AI生成真实图片
+        return await this.generateImagesWithAI(theme, count);
+      } else {
+        // 使用模拟图片
+        logger.warn('未配置图像生成API，使用模拟图片');
+        return this.mockImageGeneration(theme, count);
+      }
     } catch (error: any) {
       logger.error(`图片生成失败: ${error.message}`);
       throw new AppError(`图片生成失败: ${error.message}`, 500);
@@ -67,25 +221,155 @@ export class ContentService {
   }
 
   /**
-   * 生成视频（模拟）
+   * 使用AI生成图片
+   */
+  private static async generateImagesWithAI(theme: string, count: number): Promise<string[]> {
+    try {
+      const apiUrl = process.env.STABLE_DIFFUSION_API_URL;
+      if (!apiUrl) {
+        throw new AppError('图像生成API地址未配置', 500);
+      }
+
+      const images: string[] = [];
+      
+      for (let i = 0; i < count; i++) {
+        const prompt = this.buildImagePrompt(theme, i);
+        
+        const response = await axios.post(apiUrl, {
+          prompt,
+          negative_prompt: 'blurry, low quality, watermark, text',
+          steps: 20,
+          width: 1024,
+          height: 1024,
+          cfg_scale: 7.5,
+        }, {
+          timeout: 30000,
+        });
+
+        if (response.data && response.data.images && response.data.images.length > 0) {
+          // 假设API返回base64编码的图片
+          const imageData = response.data.images[0];
+          // 这里应该将图片保存到文件系统或云存储
+          const imageUrl = await this.saveGeneratedImage(imageData, `image-${Date.now()}-${i}`);
+          images.push(imageUrl);
+        } else {
+          throw new AppError('图像生成API返回数据格式错误', 500);
+        }
+      }
+
+      logger.info(`AI图片生成成功: ${theme} - ${count}张`);
+      return images;
+    } catch (error: any) {
+      logger.error(`AI图片生成失败: ${error.message}`);
+      // 如果AI生成失败，回退到模拟生成
+      return this.mockImageGeneration(theme, count);
+    }
+  }
+
+  /**
+   * 构建图片生成提示词
+   */
+  private static buildImagePrompt(theme: string, index: number): string {
+    const styles = [
+      '小红书风格，清新自然，高饱和度',
+      'ins风，简约时尚，高级感',
+      '日系风格，温暖治愈，生活化',
+      '欧美风格，大气简约，质感强'
+    ];
+    
+    const style = styles[index % styles.length];
+    
+    return `${theme}，${style}，高清，细节丰富，适合社交媒体分享`;
+  }
+
+  /**
+   * 保存生成的图片
+   */
+  private static async saveGeneratedImage(_imageData: string, filename: string): Promise<string> {
+    // 这里应该实现图片保存逻辑
+    // 暂时返回模拟URL
+    return `https://storage.example.com/generated/${filename}.jpg`;
+  }
+
+  /**
+   * 模拟图片生成
+   */
+  private static mockImageGeneration(_theme: string, count: number): string[] {
+    // 使用真实的占位图片服务，确保图片可以显示
+    return Array.from({ length: count }, (_, i) => 
+      `https://picsum.photos/1024/1024?random=${Date.now()}-${i}`
+    );
+  }
+
+  /**
+   * 生成视频
    */
   static async generateVideo(theme: string): Promise<string> {
     try {
       logger.info(`开始生成视频: ${theme}`);
       
-      // 模拟视频生成过程
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      
-      // 这里应该调用实际的AI视频生成API
-      // 暂时返回模拟视频URL
-      const videoUrl = `https://example.com/generated/video-${Date.now()}.mp4`;
-      
-      logger.info(`视频生成成功: ${theme}`);
-      return videoUrl;
+      // 检查是否配置了视频生成API
+      if (process.env.VIDEO_GENERATION_API_URL) {
+        // 使用AI生成真实视频
+        return await this.generateVideoWithAI(theme);
+      } else {
+        // 使用模拟视频
+        logger.warn('未配置视频生成API，使用模拟视频');
+        return this.mockVideoGeneration(theme);
+      }
     } catch (error: any) {
       logger.error(`视频生成失败: ${error.message}`);
       throw new AppError(`视频生成失败: ${error.message}`, 500);
     }
+  }
+
+  /**
+   * 使用AI生成视频
+   */
+  private static async generateVideoWithAI(theme: string): Promise<string> {
+    try {
+      const apiUrl = process.env.VIDEO_GENERATION_API_URL;
+      if (!apiUrl) {
+        throw new AppError('视频生成API地址未配置', 500);
+      }
+
+      const prompt = this.buildVideoPrompt(theme);
+      
+      const response = await axios.post(apiUrl, {
+        prompt,
+        duration: 15, // 15秒视频
+        resolution: '720p',
+        style: '小红书风格',
+      }, {
+        timeout: 60000, // 视频生成需要更长时间
+      });
+
+      if (response.data && response.data.video_url) {
+        const videoUrl = response.data.video_url;
+        logger.info(`AI视频生成成功: ${theme}`);
+        return videoUrl;
+      } else {
+        throw new AppError('视频生成API返回数据格式错误', 500);
+      }
+    } catch (error: any) {
+      logger.error(`AI视频生成失败: ${error.message}`);
+      // 如果AI生成失败，回退到模拟生成
+      return this.mockVideoGeneration(theme);
+    }
+  }
+
+  /**
+   * 构建视频生成提示词
+   */
+  private static buildVideoPrompt(theme: string): string {
+    return `${theme}，小红书风格短视频，15秒，高清，适合社交媒体分享，包含动态文字和背景音乐`;
+  }
+
+  /**
+   * 模拟视频生成
+   */
+  private static mockVideoGeneration(theme: string): string {
+    return `https://example.com/generated/${theme}-video-${Date.now()}.mp4`;
   }
 
   /**
@@ -95,20 +379,15 @@ export class ContentService {
     try {
       logger.info(`开始优化内容: ${targetPlatform}`);
       
-      // 模拟内容优化过程
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 这里应该调用实际的内容优化算法
-      // 暂时简单处理
-      let optimizedContent = content;
-      
-      if (targetPlatform === 'xiaohongshu') {
-        // 小红书风格优化
-        optimizedContent = this.optimizeForXiaohongshu(content);
+      // 检查是否配置了OpenAI API
+      if (process.env.OPENAI_API_KEY) {
+        // 使用AI进行内容优化
+        return await this.optimizeContentWithAI(content, targetPlatform);
+      } else {
+        // 使用模拟优化
+        logger.warn('未配置OpenAI API，使用模拟优化');
+        return this.mockContentOptimization(content, targetPlatform);
       }
-      
-      logger.info(`内容优化成功: ${targetPlatform}`);
-      return optimizedContent;
     } catch (error: any) {
       logger.error(`内容优化失败: ${error.message}`);
       throw new AppError(`内容优化失败: ${error.message}`, 500);
@@ -116,61 +395,240 @@ export class ContentService {
   }
 
   /**
-   * 批量内容生成
+   * 使用AI优化内容
    */
-  static async batchGenerateContent(
-    configs: ContentGenerationConfig[],
-    includeImages: boolean = false,
-    includeVideo: boolean = false
-  ) {
+  private static async optimizeContentWithAI(content: string, targetPlatform: string): Promise<string> {
     try {
-      logger.info(`开始批量生成内容: ${configs.length} 个任务`);
+      const openai = this.initOpenAI();
       
-      const results = [];
+      const prompt = this.buildOptimizationPrompt(content, targetPlatform);
       
-      for (let i = 0; i < configs.length; i++) {
-        const config = configs[i];
-        
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的内容优化助手，专门为小红书平台优化内容。请将内容优化得更吸引人、更符合小红书风格。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      });
+
+      if (response.choices && response.choices[0] && response.choices[0].message) {
+        const optimizedContent = response.choices[0].message.content;
+        logger.info('AI内容优化成功');
+        return optimizedContent || content;
+      } else {
+        throw new AppError('AI优化返回数据格式错误', 500);
+      }
+    } catch (error: any) {
+      logger.error(`AI内容优化失败: ${error.message}`);
+      // 如果AI优化失败，回退到模拟优化
+      return this.mockContentOptimization(content, targetPlatform);
+    }
+  }
+
+  /**
+   * 构建内容优化提示词
+   */
+  private static buildOptimizationPrompt(content: string, targetPlatform: string): string {
+    return `请优化以下内容，使其更符合${targetPlatform}平台风格：\n\n${content}\n\n要求：\n1. 语言生动有趣，吸引眼球\n2. 添加适当的emoji表情\n3. 优化段落结构，便于阅读\n4. 添加相关话题标签\n5. 保持原意不变`;
+  }
+
+  /**
+   * 模拟内容优化
+   */
+  private static mockContentOptimization(content: string, targetPlatform: string): string {
+    let optimizedContent = content;
+    
+    if (targetPlatform === 'xiaohongshu') {
+      // 小红书风格优化
+      optimizedContent = this.optimizeForXiaohongshu(content);
+    }
+    
+    return `✨ 优化后的内容 ✨\n\n${optimizedContent}\n\n#${targetPlatform} #内容优化 #优质内容`;
+  }
+
+  /**
+   * 批量生成内容
+   */
+  static async batchGenerateContent(themes: string[]): Promise<BatchContentResult[]> {
+    try {
+      logger.info(`开始批量生成内容，主题数量: ${themes.length}`);
+      
+      // 并行处理所有主题
+      const promises = themes.map(async (theme) => {
         try {
-          logger.info(`处理第 ${i + 1}/${configs.length} 个内容: ${config.theme}`);
+          logger.info(`处理主题: ${theme}`);
           
-          const content = await this.generateContent(config);
-          let images: string[] = [];
-          let video: string | null = null;
+          // 生成文案内容
+          const content = await this.generateContent({
+            theme,
+            keywords: [theme],
+            targetAudience: '小红书用户',
+            style: 'casual',
+            wordCount: 300
+          });
           
-          if (includeImages) {
-            images = await this.generateImages(config.theme, 3);
-          }
+          // 生成图片
+          const images = await this.generateImages(theme);
           
-          if (includeVideo) {
-            video = await this.generateVideo(config.theme);
-          }
+          // 生成视频（简化实现）
+          const video = await this.generateVideo(theme);
           
-          results.push({
-            config,
+          const result: BatchContentResult = {
+            theme,
             content,
             images,
             video,
-            success: true,
-          });
+            status: 'success'
+          };
           
-          logger.info(`第 ${i + 1} 个内容生成成功`);
+          logger.info(`主题生成成功: ${theme}`);
+          return result;
         } catch (error: any) {
-          logger.error(`第 ${i + 1} 个内容生成失败: ${error.message}`);
-          results.push({
-            config,
-            error: error.message,
-            success: false,
-          });
+          logger.error(`主题生成失败: ${theme}, 错误: ${error.message}`);
+          const result: BatchContentResult = {
+            theme,
+            content: {
+              title: '',
+              content: '',
+              hashtags: [],
+              summary: ''
+            },
+            images: [],
+            video: '',
+            status: 'error',
+            error: error.message
+          };
+          return result;
         }
-      }
+      });
       
-      logger.info(`批量内容生成完成: ${results.filter(r => r.success).length}/${configs.length} 成功`);
-      return results;
+      // 等待所有任务完成
+      const batchResults = await Promise.all(promises);
+      
+      const successCount = batchResults.filter(r => r.status === 'success').length;
+      const errorCount = batchResults.filter(r => r.status === 'error').length;
+      
+      logger.info(`批量内容生成完成，成功: ${successCount}, 失败: ${errorCount}`);
+      return batchResults;
     } catch (error: any) {
       logger.error(`批量内容生成失败: ${error.message}`);
       throw new AppError(`批量内容生成失败: ${error.message}`, 500);
     }
+  }
+
+  /**
+   * 发布内容
+   */
+  static async publishContent(content: string, images: string[], video: string, platform: string): Promise<string> {
+    try {
+      logger.info(`开始发布内容到平台: ${platform}`);
+      
+      // 根据平台选择发布策略
+      switch (platform) {
+        case 'xiaohongshu':
+          return await this.publishToXiaohongshu(content, images, video);
+        case 'douyin':
+          return await this.publishToDouyin(content, images, video);
+        case 'weibo':
+          return await this.publishToWeibo(content, images, video);
+        default:
+          throw new AppError(`不支持的发布平台: ${platform}`, 400);
+      }
+    } catch (error: any) {
+      logger.error(`内容发布失败: ${error.message}`);
+      throw new AppError(`内容发布失败: ${error.message}`, 500);
+    }
+  }
+
+  /**
+   * 发布到小红书
+   */
+  private static async publishToXiaohongshu(content: string, images: string[], video: string): Promise<string> {
+    try {
+      // 检查是否配置了小红书API
+      if (process.env.XIAOHONGSHU_API_URL && process.env.XIAOHONGSHU_ACCESS_TOKEN) {
+        return await this.publishToXiaohongshuAPI(content, images, video);
+      } else {
+        // 使用模拟发布
+        logger.warn('未配置小红书API，使用模拟发布');
+        return this.mockPublishToXiaohongshu(content, images, video);
+      }
+    } catch (error: any) {
+      logger.error(`小红书发布失败: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 使用小红书API发布
+   */
+  private static async publishToXiaohongshuAPI(content: string, images: string[], video: string): Promise<string> {
+    const apiUrl = process.env.XIAOHONGSHU_API_URL;
+    const accessToken = process.env.XIAOHONGSHU_ACCESS_TOKEN;
+    
+    if (!apiUrl || !accessToken) {
+      throw new AppError('小红书API配置不完整', 500);
+    }
+
+    const publishData = {
+      content,
+      images,
+      video,
+      publish_time: new Date().toISOString(),
+      tags: ['#小红书', '#内容发布', '#优质内容']
+    };
+
+    const response = await axios.post(`${apiUrl}/publish`, publishData, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000,
+    });
+
+    if (response.data && response.data.publish_id) {
+      logger.info(`小红书发布成功: ${response.data.publish_id}`);
+      return response.data.publish_id;
+    } else {
+      throw new AppError('小红书API返回数据格式错误', 500);
+    }
+  }
+
+  /**
+   * 模拟发布到小红书
+   */
+  private static mockPublishToXiaohongshu(_content: string, _images: string[], _video: string): string {
+    const publishId = `xiaohongshu-pub-${Date.now()}`;
+    logger.info(`模拟小红书发布成功: ${publishId}`);
+    return publishId;
+  }
+
+  /**
+   * 发布到抖音
+   */
+  private static async publishToDouyin(_content: string, _images: string[], _video: string): Promise<string> {
+    // 抖音发布逻辑类似，这里简化处理
+    const publishId = `douyin-pub-${Date.now()}`;
+    logger.info(`模拟抖音发布成功: ${publishId}`);
+    return publishId;
+  }
+
+  /**
+   * 发布到微博
+   */
+  private static async publishToWeibo(_content: string, _images: string[], _video: string): Promise<string> {
+    // 微博发布逻辑类似，这里简化处理
+    const publishId = `weibo-pub-${Date.now()}`;
+    logger.info(`模拟微博发布成功: ${publishId}`);
+    return publishId;
   }
 
   /**

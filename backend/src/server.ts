@@ -4,12 +4,20 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
+import { MobileService } from './services/mobileService.js';
+import { WebSocketService } from './services/websocketService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -29,9 +37,10 @@ app.use(cors({
 }));
 
 // 速率限制
+// 在开发环境中提高限制以避免测试时触发
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 限制每个IP 15分钟内最多100次请求
+  max: process.env.NODE_ENV === 'development' ? 10000 : 500, // 开发环境提高到10000次，生产环境保持500次
   message: {
     success: false,
     error: '请求过于频繁，请稍后再试'
@@ -57,6 +66,31 @@ app.get('/health', (_req, res) => {
     uptime: process.uptime(),
     environment: process.env.NODE_ENV
   });
+});
+
+// 静态文件服务 - 移动端设置指南
+const mobileDir = path.join(__dirname, '..', '..', 'mobile');
+app.use('/mobile', express.static(mobileDir, {
+  index: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+  }
+}));
+
+// 移动端连接页面路由
+app.get('/mobile/connect', (req, res) => {
+    const deviceId = req.query.deviceId;
+    if (!deviceId) {
+        return res.status(400).json({ 
+            success: false, 
+            error: '缺少设备ID参数' 
+        });
+    }
+    
+    // 重定向到连接页面，但保留参数
+    res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
 });
 
 // API路由
@@ -101,11 +135,26 @@ async function startServer() {
       }
     }
 
-    app.listen(PORT, () => {
+    // 初始化移动端服务
+    try {
+      await MobileService.initialize();
+      logger.info('✅ Mobile service initialized successfully');
+    } catch (error) {
+      logger.warn('⚠️ Mobile service initialization failed');
+    }
+
+    // 创建HTTP服务器
+    const server = createServer(app);
+
+    // 初始化WebSocket服务
+    WebSocketService.initialize(server);
+
+    server.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
+      logger.info(`🔗 WebSocket URL: ws://localhost:${PORT}/ws/mobile`);
       logger.info('💡 Note: Some features may be limited without database connection');
     });
   } catch (error) {

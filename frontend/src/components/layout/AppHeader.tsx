@@ -7,8 +7,8 @@ import {
   LogoutOutlined,
   SettingOutlined 
 } from '@ant-design/icons';
-import { useAppStore } from '@store/appStore';
-import { useAuthStore } from '@store/authStore';
+import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 
 const { Header } = Layout;
 
@@ -28,7 +28,8 @@ const AppHeader: React.FC = () => {
       label: '设置',
     },
     {
-      type: 'divider',
+      key: 'divider',
+      type: 'divider' as const,
     },
     {
       key: 'logout',
@@ -56,7 +57,7 @@ const AppHeader: React.FC = () => {
   };
 
   return (
-    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
       <div className="flex items-center">
         <Button
           type="text"
@@ -64,9 +65,6 @@ const AppHeader: React.FC = () => {
           onClick={toggleSidebar}
           className="text-gray-600"
         />
-        <div className="ml-4">
-          <h1 className="text-xl font-semibold text-gray-800">OneKeyRelease</h1>
-        </div>
       </div>
 
       <div className="flex items-center space-x-4">

@@ -16,13 +16,12 @@ import {
 import { 
   PlusOutlined, 
   PlayCircleOutlined, 
-  PauseCircleOutlined, 
   EditOutlined, 
   DeleteOutlined 
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { apiClient } from '@utils/api';
-import type { Task } from '@types';
+import { apiClient } from '../utils/api';
+import type { Task } from '../types';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -34,9 +33,9 @@ const Tasks: React.FC = () => {
   const queryClient = useQueryClient();
 
   // 获取任务列表
-  const { data: tasks, isLoading } = useQuery('tasks', async () => {
+  const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
-    return response.data || [];
+    return Array.isArray(response.data) ? response.data : [];
   });
 
   // 创建任务
@@ -145,7 +144,7 @@ const Tasks: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: Task) => (
+      render: (_: any, record: Task) => (
         <Space size="middle">
           {record.status === 'pending' && (
             <Button

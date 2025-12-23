@@ -6,8 +6,8 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res, _next) => {
     try {
         const userId = req.user._id;
-        const { page = 1, limit = 10, status, type } = req.query;
-        const result = await TaskService.getUserTasks(userId, parseInt(page), parseInt(limit), status, type);
+        const { page = 1, limit = 10, status } = req.query;
+        const result = await TaskService.getUserTasks(userId, parseInt(page), parseInt(limit), status);
         res.json({
             success: true,
             data: result,

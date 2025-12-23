@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端设备设置指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid #4f46e5;
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .step h3 {
+            display: inline-block;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+        
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .qr-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.connected {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .platform-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .platform-button {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .platform-button.active {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+        
+        .platform-button img {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .platform-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 移动端设备设置</h1>
+            <p>一键发布系统 - 移动设备连接指南</p>
+        </div>
+        
+        <div class="content">
+            <!-- 步骤1：获取设备ID -->
+            <div class="step">
+                <span class="step-number">1</span>
+                <h3>获取设备ID</h3>
+                <p>在网页端注册设备并获取唯一的设备ID：</p>
+                
+                <div class="highlight">
+                    <strong>操作步骤：</strong>
+                    <ol>
+                        <li>打开 <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
+                        <li>点击"移动端设备连接"区域的"注册设备"按钮</li>
+                        <li>记录系统生成的设备ID</li>
+                    </ol>
+                </div>
+                
+                <div class="code-block">
+                    设备ID示例：device_k5m3x9_abc123
+                </div>
+            </div>
+            
+            <!-- 步骤2：选择平台 -->
+            <div class="step">
+                <span class="step-number">2</span>
+                <h3>选择您的设备平台</h3>
+                
+                <div class="platform-buttons">
+                    <div class="platform-button" onclick="selectPlatform('android')">
+                        <div>🤖</div>
+                        <strong>Android</strong>
+                        <p>安卓设备</p>
+                    </div>
+                    <div class="platform-button" onclick="selectPlatform('ios')">
+                        <div>🍎</div>
+                        <strong>iOS</strong>
+                        <p>苹果设备</p>
+                    </div>
+                </div>
+                
+                <div id="platform-instructions" style="display: none;">
+                    <!-- 平台特定说明将动态显示 -->
+                </div>
+            </div>
+            
+            <!-- 步骤3：连接测试 -->
+            <div class="step">
+                <span class="step-number">3</span>
+                <h3>测试连接</h3>
+                
+                <div class="qr-section">
+                    <div class="qr-code" id="qrCode">
+                        扫描二维码快速连接
+                    </div>
+                    <p>或手动输入以下地址：</p>
+                    <div class="code-block" id="connectionUrl">
+                        http://你的电脑IP:3000/mobile/connect
+                    </div>
+                    <button class="button" onclick="testConnection()">测试连接</button>
+                    <div id="connectionStatus"></div>
+                </div>
+            </div>
+            
+            <!-- 步骤4：使用说明 -->
+            <div class="step">
+                <span class="step-number">4</span>
+                <h3>使用说明</h3>
+                
+                <div class="highlight">
+                    <strong>移动端功能：</strong>
+                    <ul>
+                        <li>📨 接收内容生成指令</li>
+                        <li>🖼️ 下载图片和视频内容</li>
+                        <li>📊 查看任务执行状态</li>
+                        <li>🔔 接收实时通知</li>
+                    </ul>
+                </div>
+                
+                <div class="code-block">
+                    // 自动连接配置
+                    const config = {
+                        server: "http://你的电脑IP:3000",
+                        deviceId: "你的设备ID",
+                        heartbeatInterval: 120000 // 2分钟
+                    };
+                </div>
+            </div>
+            
+            <!-- 故障排除 -->
+            <div class="step">
+                <span class="step-number">?</span>
+                <h3>故障排除</h3>
+                
+                <div class="highlight">
+                    <strong>常见问题：</strong>
+                    <ul>
+                        <li>❌ 连接失败：检查电脑IP地址和防火墙设置</li>
+                        <li>❌ 设备未显示：确认设备ID正确且已注册</li>
+                        <li>❌ 指令未接收：检查WebSocket连接状态</li>
+                        <li>❌ 内容下载失败：确认文件权限和存储空间</li>
+                    </ul>
+                </div>
+                
+                <button class="button" onclick="showAdvancedSettings()">高级设置</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedPlatform = '';
+        
+        function selectPlatform(platform) {
+            selectedPlatform = platform;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.platform-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 找到被点击的按钮并激活
+            const buttons = document.querySelectorAll('.platform-button');
+            buttons.forEach(btn => {
+                if (btn.querySelector('strong').textContent.toLowerCase() === platform) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // 显示平台特定说明
+            const instructions = document.getElementById('platform-instructions');
+            instructions.style.display = 'block';
+            
+            if (platform === 'android') {
+                instructions.innerHTML = `
+                    <div class="highlight">
+                        <strong>Android设备设置：</strong>
+                        <ol>
+                            <li>确保设备与电脑在同一WiFi网络</li>
+                            <li>在浏览器中打开连接地址</li>
+                            <li>允许必要的权限（存储、网络等）</li>
+                            <li>添加网页到主屏幕以便快速访问</li>
+                        </ol>
+                    </div>
+                `;
+            } else if (platform === 'ios') {
+                instructions.innerHTML = `
+                    <div class="highlight">
+                        <strong>iOS设备设置：</strong>
+                        <ol>
+                            <li>确保设备与电脑在同一WiFi网络</li>
+                            <li>在Safari浏览器中打开连接地址</li>
+                            <li>点击分享按钮 → 添加到主屏幕</li>
+                            <li>从主屏幕快捷方式访问</li>
+                        </ol>
+                    </div>
+                `;
+            }
+            
+            // 更新连接URL
+            updateConnectionUrl();
+        }
+        
+        function updateConnectionUrl() {
+            // 生成移动端连接页面URL和API端点信息
+            const connectUrl = `http://你的电脑IP:3000/mobile/connect?deviceId=你的设备ID`;
+            const wsUrl = `ws://你的电脑IP:3000/ws/mobile?deviceId=你的设备ID`;
+            const apiUrl = `http://你的电脑IP:3000/api/v1/mobile`;
+            
+            const connectionInfo = `移动端连接页面: ${connectUrl}
+WebSocket连接: ${wsUrl}
+API端点: ${apiUrl}
+设备ID: 你的设备ID`;
+            
+            document.getElementById('connectionUrl').textContent = connectionInfo;
+        }
+        
+        function testConnection() {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.innerHTML = '<div class="status disconnected">测试中...</div>';
+            
+            if (!selectedPlatform) {
+                statusDiv.innerHTML = '<div class="status error">❌ 请先选择设备平台</div>';
+                return;
+            }
+            
+            // 实际测试后端连接
+            fetch('/health')
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerHTML = `
+                            <div class="status connected">
+                                ✅ 连接成功！后端服务正常
+                            </div>
+                            <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                                平台: ${selectedPlatform}<br>
+                                服务器状态: 正常<br>
+                                测试时间: ${new Date().toLocaleString()}
+                            </div>
+                        `;
+                    } else {
+                        throw new Error('服务器响应异常');
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ 连接失败
+                        </div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                            错误信息: ${error.message}<br>
+                            请检查：<br>
+                            - 后端服务是否运行<br>
+                            - 网络连接是否正常<br>
+                            - 防火墙设置
+                        </div>
+                    `;
+                });
+        }
+        
+        function showAdvancedSettings() {
+            alert('高级设置功能：\n\n1. 自定义心跳间隔\n2. 手动WebSocket连接\n3. 调试模式\n4. 日志查看');
+        }
+        
+        // 页面加载时尝试获取本地IP
+        window.addEventListener('load', function() {
+            // 这里可以添加获取本地IP的逻辑
+            console.log('移动端设置页面已加载');
+        });
+    </script>
+</body>
+</html>

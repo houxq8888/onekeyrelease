@@ -3,7 +3,7 @@ import { Card, Form, Input, Button, Switch, Select, Divider, Typography, message
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useForm } from 'antd/es/form/Form';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 interface SettingsForm {

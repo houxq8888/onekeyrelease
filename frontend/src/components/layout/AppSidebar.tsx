@@ -6,7 +6,8 @@ import {
   FileTextOutlined, 
   UserOutlined, 
   SettingOutlined,
-  ProjectOutlined
+  ProjectOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@store/appStore';
@@ -17,6 +18,12 @@ const AppSidebar: React.FC = () => {
   const { sidebarCollapsed } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const appTitle = (
+    <div className="flex items-center justify-center h-16 border-b border-gray-200">
+      <h1 className="text-xl font-bold text-gray-800">OneKeyRelease</h1>
+    </div>
+  );
 
   const menuItems = [
     {
@@ -30,9 +37,21 @@ const AppSidebar: React.FC = () => {
       label: '任务管理',
     },
     {
-      key: '/content',
+      key: 'content',
       icon: <FileTextOutlined />,
-      label: '内容生成',
+      label: '内容管理',
+      children: [
+        {
+          key: '/content',
+          icon: <FileTextOutlined />,
+          label: '内容生成',
+        },
+        {
+          key: '/content/history',
+          icon: <HistoryOutlined />,
+          label: '历史内容',
+        },
+      ],
     },
     {
       key: '/state-machine',
@@ -60,26 +79,30 @@ const AppSidebar: React.FC = () => {
       trigger={null} 
       collapsible 
       collapsed={sidebarCollapsed}
-      className="fixed left-0 h-full z-10 bg-white border-r border-gray-200"
+      className="fixed left-0 bg-white border-r border-gray-200"
       style={{
         overflow: 'auto',
-        height: '100vh',
+        height: 'calc(100vh - 64px)',
         position: 'fixed',
         left: 0,
         top: 64,
         bottom: 0,
         backgroundColor: '#ffffff',
+        zIndex: 5,
       }}
       theme="light"
     >
-      <div className="h-full">
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="border-none"
-        />
+      <div className="h-full flex flex-col">
+        {!sidebarCollapsed && appTitle}
+        <div className="flex-1">
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={handleMenuClick}
+            className="border-none"
+          />
+        </div>
       </div>
     </Sider>
   );

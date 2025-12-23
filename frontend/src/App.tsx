@@ -1,105 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, Spin, App as AntdApp } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import AppHeader from '@components/layout/AppHeader';
-import AppSidebar from '@components/layout/AppSidebar';
-import Auth from '@pages/Auth';
-import Dashboard from '@pages/Dashboard';
-import Tasks from '@pages/Tasks';
-import ContentGenerator from '@pages/ContentGenerator';
-import Accounts from '@pages/Accounts';
-import Settings from '@pages/Settings';
-import StateMachineEditor from '@pages/StateMachineEditor';
-import { useAppStore } from '@store/appStore';
-import { useAuthStore } from '@store/authStore';
-import { apiClient } from '@utils/api';
+import AppHeader from './components/layout/AppHeader';
+import AppSidebar from './components/layout/AppSidebar';
+import Dashboard from './pages/Dashboard';
+import Tasks from './pages/Tasks';
+import ContentGenerator from './pages/ContentGenerator';
+import ContentHistory from './pages/ContentHistory';
+import Accounts from './pages/Accounts';
+import Settings from './pages/Settings';
+import StateMachineEditor from './pages/StateMachineEditor';
+import { useAppStore } from './store/appStore';
+import { useAuthStore } from './store/authStore';
+
 
 const { Content } = Layout;
 
-// 创建React Query客户端
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5分钟
-    },
-  },
-});
-
 const App: React.FC = () => {
   const { sidebarCollapsed } = useAppStore();
-  const { isAuthenticated, login, logout } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated, token, user, login } = useAuthStore();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // 检查认证状态
+  console.log('App组件认证状态:', { isAuthenticated, token, user });
+
+  // 演示版本：直接设置认证状态，跳过登录验证
   useEffect(() => {
-    const checkAuth = async () => {
+    const setupDemoAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const userStr = localStorage.getItem('user');
-        if (token && userStr) {
-          const user = JSON.parse(userStr);
-          login(token, user);
+        // 如果当前未认证，则设置演示用户
+        if (!isAuthenticated || !token) {
+          console.log('设置演示版本认证状态...');
+          
+          // 创建演示用户信息
+          const demoUser = {
+            id: 'demo-user-id',
+            username: '演示用户',
+            email: 'demo@example.com',
+            role: 'admin'
+          };
+          
+          // 设置演示token和用户信息
+          login('demo-token', demoUser);
+          console.log('演示版本认证设置完成');
         }
       } catch (error) {
-        logout();
+        console.error('设置演示认证时出错:', error);
       } finally {
-        setLoading(false);
+        setIsCheckingAuth(false);
       }
     };
 
-    checkAuth();
-  }, [login, logout]);
+    setupDemoAuth();
+  }, [isAuthenticated, token, login]);
 
-  // 显示加载状态
-  if (loading) {
+  // 如果正在检查认证状态，显示加载中
+  if (isCheckingAuth) {
     return (
       <ConfigProvider locale={zhCN}>
         <AntdApp>
-          <div className="min-h-screen flex items-center justify-center">
-            <Spin size="large" tip="加载中..." fullscreen />
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">初始化演示版本...</p>
+            </div>
           </div>
         </AntdApp>
       </ConfigProvider>
     );
   }
 
-  // 如果未认证，显示登录页面
-  if (!isAuthenticated) {
-    return (
-      <ConfigProvider locale={zhCN}>
-        <QueryClientProvider client={queryClient}>
-          <AntdApp>
-            <Auth />
-          </AntdApp>
-        </QueryClientProvider>
-      </ConfigProvider>
-    );
-  }
+  // 演示版本：直接进入主界面，跳过登录页面
+  console.log('演示版本，直接进入主界面');
 
   return (
     <ConfigProvider locale={zhCN}>
-      <QueryClientProvider client={queryClient}>
         <AntdApp>
           <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
             <AppHeader />
-            <Layout style={{ backgroundColor: '#f0f2f5' }}>
+            <Layout style={{ backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
               <AppSidebar />
               <Layout 
                 className="transition-all duration-200" 
                 style={{ 
                   marginLeft: sidebarCollapsed ? 80 : 200,
-                  marginTop: 64,
-                  backgroundColor: '#f0f2f5'
+                  backgroundColor: '#f0f2f5',
+                  minHeight: 'calc(100vh - 64px)'
                 }}
               >
-                <Content className="p-6">
+                <Content className="p-6" style={{ minHeight: 'calc(100vh - 64px)' }}>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/content" element={<ContentGenerator />} />
+                    <Route path="/content/history" element={<ContentHistory />} />
                     <Route path="/accounts" element={<Accounts />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/state-machine" element={<StateMachineEditor />} />
@@ -111,7 +105,6 @@ const App: React.FC = () => {
             </Layout>
           </Layout>
         </AntdApp>
-      </QueryClientProvider>
     </ConfigProvider>
   );
 };

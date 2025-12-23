@@ -4,11 +4,11 @@ import {
   Form, 
   Input, 
   Button, 
-  message, 
   Typography, 
   Space,
   Divider,
-  Alert 
+  Alert,
+  App 
 } from 'antd';
 import { 
   UserOutlined, 
@@ -17,9 +17,9 @@ import {
   UserAddOutlined 
 } from '@ant-design/icons';
 import { useMutation } from 'react-query';
-import { apiClient } from '@utils/api';
+import { apiClient } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@store/authStore';
+import { useAuthStore } from '../store/authStore';
 
 const { Title, Text } = Typography;
 
@@ -28,18 +28,27 @@ const Auth: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const { message } = App.useApp();
 
   // 登录请求
-  const loginMutation = useMutation(apiClient.auth.login, {
+  const loginMutation = useMutation<any, any, any>(apiClient.auth.login, {
     onSuccess: (data) => {
+      console.log('登录请求成功:', data);
       message.success('登录成功');
-      // 更新认证状态
-      login(data.token, data.user);
-      // 存储token到localStorage
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      // 跳转到仪表板
-      navigate('/dashboard');
+      // 更新认证状态 - 注意后端返回的是 _id，前端期望的是 id
+      const userData = {
+        id: data.user?._id || data.user?.id,
+        username: data.user?.username,
+        email: data.user?.email,
+        role: data.user?.role
+      };
+      console.log('处理后的用户数据:', userData);
+      login(data.token, userData);
+      console.log('调用login后，准备导航到/');
+      // 使用 setTimeout 确保状态更新后再导航
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 100);
     },
     onError: (error: any) => {
       message.error(error.response?.data?.error || '登录失败');

@@ -1,6 +1,7 @@
 import Account, { IAccount } from '../models/Account';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import { memoryStorage, isMongoDBConnected } from '../config/database.js';
 
 export class AccountService {
   /**
@@ -8,6 +9,36 @@ export class AccountService {
    */
   static async createAccount(accountData: Partial<IAccount>): Promise<IAccount> {
     try {
+      // 检查是否使用内存数据库模式
+      if (!isMongoDBConnected()) {
+        // 内存数据库模式：创建账号
+        // 检查用户名是否已存在
+        const existingAccounts = memoryStorage.findAccountsByUserId(accountData.createdBy || '');
+        const existingAccount = existingAccounts.find((a: any) => 
+          a.username === accountData.username && a.platform === accountData.platform
+        );
+        
+        if (existingAccount) {
+          throw new AppError('该平台下已存在相同用户名的账号', 400);
+        }
+
+        // 创建账号对象
+        const account = {
+          _id: `account-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          ...accountData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: 'active'
+        };
+
+        // 添加到内存存储
+        memoryStorage.addAccount(account);
+        
+        logger.info(`账号创建成功（内存模式）: ${account._id} - ${account.username}`);
+        return account as IAccount;
+      }
+
+      // 正常MongoDB模式
       // 验证账号信息
       const account = new Account(accountData);
       (account as any).validateCredentials();
@@ -46,6 +77,46 @@ export class AccountService {
     status?: string
   ) {
     try {
+      // 检查是否使用内存数据库模式
+      if (!isMongoDBConnected()) {
+        // 内存数据库模式：获取用户账号列表
+        let accounts = memoryStorage.findAccountsByUserId(userId);
+        
+        // 过滤条件
+        if (platform) {
+          accounts = accounts.filter((a: any) => a.platform === platform);
+        }
+        
+        if (status) {
+          accounts = accounts.filter((a: any) => a.status === status);
+        }
+        
+        // 排序
+        accounts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        const total = accounts.length;
+        const skip = (page - 1) * limit;
+        const paginatedAccounts = accounts.slice(skip, skip + limit);
+        
+        // 移除敏感信息
+        const safeAccounts = paginatedAccounts.map((account: any) => {
+          const { password, cookies, ...safeAccount } = account;
+          return safeAccount;
+        });
+
+        logger.info(`获取账号列表成功（内存模式）: ${userId}, 总数: ${total}`);
+        return {
+          accounts: safeAccounts,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        };
+      }
+
+      // 正常MongoDB模式
       const query: any = { createdBy: userId };
       
       if (platform) {
@@ -84,6 +155,23 @@ export class AccountService {
    */
   static async getAccountById(accountId: string, userId: string): Promise<IAccount> {
     try {
+      // 检查是否使用内存数据库模式
+      if (!isMongoDBConnected()) {
+        // 内存数据库模式：获取账号详情
+        const account = memoryStorage.findAccountById(accountId);
+        
+        if (!account || account.createdBy !== userId) {
+          throw new AppError('账号不存在', 404);
+        }
+
+        // 移除敏感信息
+        const { password, cookies, ...safeAccount } = account;
+        
+        logger.info(`获取账号详情成功（内存模式）: ${accountId}`);
+        return safeAccount as IAccount;
+      }
+
+      // 正常MongoDB模式
       const account = await Account.findOne({ _id: accountId, createdBy: userId })
         .select('-password -cookies');
       

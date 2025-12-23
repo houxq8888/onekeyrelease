@@ -17,43 +17,38 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       token: null,
       user: null,
       isAuthenticated: false,
-      
+
       login: (token: string, user: AuthState['user']) => {
+        console.log('authStore.login called', { token, user });
         set({
           token,
           user,
           isAuthenticated: true,
         });
+        console.log('Login successful, state updated');
       },
-      
+
       logout: () => {
+        console.log('authStore.logout called');
         set({
           token: null,
           user: null,
           isAuthenticated: false,
         });
       },
-      
+
       updateUser: (userData: Partial<AuthState['user']>) => {
-        const currentUser = get().user;
-        if (currentUser) {
-          set({
-            user: { ...currentUser, ...userData },
-          });
-        }
+        set((state) => ({
+          user: state.user ? { ...state.user, ...userData } : null,
+        }));
       },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        token: state.token,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    }
+    } 
   )
 );

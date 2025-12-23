@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   Button, 
@@ -15,8 +15,6 @@ import {
 import { 
   UploadOutlined, 
   PlayCircleOutlined,
-  SaveOutlined,
-  EditOutlined,
   EyeOutlined
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
@@ -277,7 +275,7 @@ const StateMachineEditor: React.FC = () => {
                   {wizardFile.states.map(state => (
                     <div key={state.id} className="mb-2 p-2 border rounded">
                       <Text strong>{state.name}</Text>
-                      <Tag size="small" style={{ marginLeft: '8px' }}>
+                      <Tag style={{ marginLeft: '8px', fontSize: '12px' }}>
                         {state.type}
                       </Tag>
                     </div>

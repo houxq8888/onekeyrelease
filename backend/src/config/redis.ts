@@ -3,10 +3,39 @@ import { logger } from '../utils/logger.js';
 
 let redisClient: Redis.RedisClientType;
 
+// 内存缓存模拟
+const memoryCache = new Map();
+
+// 模拟Redis操作
+const mockRedis = {
+  set: async (key: string, value: string, options?: any) => {
+    memoryCache.set(key, value);
+    if (options?.EX) {
+      setTimeout(() => memoryCache.delete(key), options.EX * 1000);
+    }
+    return 'OK';
+  },
+  get: async (key: string) => memoryCache.get(key) || null,
+  del: async (key: string) => {
+    const existed = memoryCache.has(key);
+    memoryCache.delete(key);
+    return existed ? 1 : 0;
+  },
+  exists: async (key: string) => memoryCache.has(key) ? 1 : 0,
+  expire: async (key: string, seconds: number) => {
+    if (memoryCache.has(key)) {
+      setTimeout(() => memoryCache.delete(key), seconds * 1000);
+      return 1;
+    }
+    return 0;
+  }
+};
+
 export async function connectRedis(): Promise<void> {
   try {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     
+    // 尝试连接真实Redis
     redisClient = Redis.createClient({
       url: redisUrl,
       socket: {
@@ -31,8 +60,10 @@ export async function connectRedis(): Promise<void> {
     await Promise.race([connectPromise, timeoutPromise]);
 
   } catch (error) {
-    logger.error('Failed to connect to Redis:', error);
-    throw error;
+    // 如果Redis连接失败，使用内存缓存
+    logger.warn('Redis连接失败，使用内存缓存模式:', (error as Error).message);
+    redisClient = mockRedis as any;
+    logger.info('内存缓存模式已启用');
   }
 }
 
@@ -44,8 +75,10 @@ export function getRedisClient(): Redis.RedisClientType {
 }
 
 export async function disconnectRedis(): Promise<void> {
-  if (redisClient) {
+  if (redisClient && (redisClient as any) !== mockRedis) {
     await redisClient.quit();
     logger.info('Redis disconnected');
   }
 }
+
+export const isRedisConnected = (): boolean => redisClient && (redisClient as any) !== mockRedis;

@@ -20,8 +20,8 @@ import {
   ExclamationCircleOutlined 
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { apiClient } from '@utils/api';
-import type { Account } from '@types';
+import { apiClient } from '../utils/api';
+import type { Account } from '../types';
 
 const { Title } = Typography;
 
@@ -32,9 +32,9 @@ const Accounts: React.FC = () => {
   const queryClient = useQueryClient();
 
   // 获取账号列表
-  const { data: accounts, isLoading } = useQuery('accounts', async () => {
+  const { data: accounts = [], isLoading } = useQuery<Account[]>('accounts', async () => {
     const response = await apiClient.accounts.list();
-    return response.data || [];
+    return Array.isArray(response.data) ? response.data : [];
   });
 
   // 创建账号
@@ -154,7 +154,7 @@ const Accounts: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: Account) => (
+      render: (_: any, record: Account) => (
         <Space size="middle">
           <Button
             type="link"

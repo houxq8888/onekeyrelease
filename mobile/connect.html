@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端连接 - OneKeyRelease</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .status-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status.connected .status-icon {
+            background: #10b981;
+        }
+        
+        .status.disconnected .status-icon {
+            background: #ef4444;
+        }
+        
+        .status.connecting .status-icon {
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background: #4338ca;
+        }
+        
+        .button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .log-time {
+            color: #94a3b8;
+        }
+        
+        .log-info {
+            color: #60a5fa;
+        }
+        
+        .log-error {
+            color: #f87171;
+        }
+        
+        .log-success {
+            color: #34d399;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 移动端连接</h1>
+            <p>OneKeyRelease - 实时内容生成系统</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-card">
+                <div class="status disconnected" id="connectionStatus">
+                    <div class="status-icon"></div>
+                    <div>
+                        <strong>连接状态: 未连接</strong>
+                        <div style="font-size: 14px; color: #64748b;">点击下方按钮开始连接</div>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">设备ID</div>
+                        <div class="info-value" id="deviceIdDisplay">未设置</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">服务器</div>
+                        <div class="info-value" id="serverDisplay">未设置</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">连接时间</div>
+                        <div class="info-value" id="connectTimeDisplay">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">最后活跃</div>
+                        <div class="info-value" id="lastActiveDisplay">-</div>
+                    </div>
+                </div>
+                
+                <button class="button" id="connectButton" onclick="connectToServer()">连接服务器</button>
+                <button class="button" id="disconnectButton" onclick="disconnectFromServer()" style="display: none; margin-top: 10px; background: #ef4444;">断开连接</button>
+            </div>
+            
+            <div class="status-card">
+                <h3>📊 系统信息</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">WebSocket状态</div>
+                        <div class="info-value" id="wsStatus">未连接</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">API状态</div>
+                        <div class="info-value" id="apiStatus">未测试</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">接收消息</div>
+                        <div class="info-value" id="messageCount">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">连接时长</div>
+                        <div class="info-value" id="uptimeDisplay">0秒</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="log-container" id="logContainer">
+                <div class="log-entry"><span class="log-time">[系统]</span> <span class="log-info">移动端连接页面已加载</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let deviceId = '';
+        let serverUrl = '';
+        let messageCount = 0;
+        let connectTime = null;
+        let uptimeInterval = null;
+        
+        // 立即执行参数解析（不等待DOMContentLoaded）
+        (function initParams() {
+            // 立即获取URL参数并更新显示
+            const urlParams = new URLSearchParams(window.location.search);
+            deviceId = urlParams.get('deviceId') || '';
+            
+            // 获取服务器地址（使用当前页面的协议和主机，但端口改为后端端口3000）
+            const currentHost = window.location.hostname;
+            serverUrl = `${currentHost}:3000`;
+            
+            // 确保DOM元素存在后再更新显示
+            function updateDisplay() {
+                const deviceIdElement = document.getElementById('deviceIdDisplay');
+                const serverElement = document.getElementById('serverDisplay');
+                
+                if (deviceIdElement) {
+                    deviceIdElement.textContent = deviceId || '未设置';
+                }
+                if (serverElement) {
+                    serverElement.textContent = serverUrl || '未设置';
+                }
+                
+                // 如果有设备ID，添加到日志
+                if (deviceId) {
+                    addLog('系统', `设备ID已设置: ${deviceId}`, 'success');
+                } else {
+                    addLog('错误', '请在URL中提供设备ID参数，例如: ?deviceId=your_device_id`, 'error');
+                }
+            }
+            
+            // 如果DOM已加载，立即更新显示
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateDisplay);
+            } else {
+                updateDisplay();
+            }
+        })();
+        
+        // 从URL参数获取设备ID
+        function getUrlParams() {
+            // 如果设备ID已通过initParams设置，直接使用
+            if (!deviceId) {
+                const urlParams = new URLSearchParams(window.location.search);
+                deviceId = urlParams.get('deviceId') || '';
+            }
+            
+            // 如果没有设备ID，提示用户
+            if (!deviceId) {
+                addLog('错误', '请在URL中提供设备ID参数，例如: ?deviceId=your_device_id', 'error');
+                return false;
+            }
+            
+            // 更新显示
+            document.getElementById('deviceIdDisplay').textContent = deviceId;
+            document.getElementById('serverDisplay').textContent = serverUrl;
+            
+            return true;
+        }
+        
+        // 连接WebSocket服务器
+        function connectToServer() {
+            if (!getUrlParams()) return;
+            
+            try {
+                // 更新连接状态
+                updateConnectionStatus('connecting', '连接中...');
+                
+                // 构建WebSocket URL
+                const wsUrl = `ws://${serverUrl}/ws/mobile?deviceId=${deviceId}`;
+                addLog('连接', `正在连接到: ${wsUrl}`, 'info');
+                
+                // 创建WebSocket连接
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    updateConnectionStatus('connected', '连接成功');
+                    connectTime = new Date();
+                    document.getElementById('connectTimeDisplay').textContent = connectTime.toLocaleTimeString();
+                    
+                    // 开始计时
+                    startUptimeTimer();
+                    
+                    addLog('连接', 'WebSocket连接已建立', 'success');
+                    
+                    // 测试API连接
+                    testApiConnection();
+                };
+                
+                ws.onmessage = function(event) {
+                    messageCount++;
+                    document.getElementById('messageCount').textContent = messageCount;
+                    
+                    try {
+                        const data = JSON.parse(event.data);
+                        addLog('消息', `收到消息: ${data.type}`, 'info');
+                        
+                        // 处理不同类型的消息
+                        handleWebSocketMessage(data);
+                        
+                    } catch (error) {
+                        addLog('错误', `消息解析失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    updateConnectionStatus('disconnected', `连接已关闭 (代码: ${event.code})`);
+                    stopUptimeTimer();
+                    addLog('连接', `WebSocket连接已关闭: ${event.reason || '未知原因'}`, 'error');
+                };
+                
+                ws.onerror = function(error) {
+                    updateConnectionStatus('disconnected', '连接错误');
+                    addLog('错误', `WebSocket连接错误: ${error.message}`, 'error');
+                };
+                
+            } catch (error) {
+                updateConnectionStatus('disconnected', '连接失败');
+                addLog('错误', `连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 断开连接
+        function disconnectFromServer() {
+            if (ws) {
+                ws.close(1000, '用户主动断开');
+                ws = null;
+            }
+            updateConnectionStatus('disconnected', '已断开连接');
+            stopUptimeTimer();
+            addLog('连接', '连接已手动断开', 'info');
+        }
+        
+        // 更新连接状态显示
+        function updateConnectionStatus(status, message) {
+            const statusElement = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectButton');
+            const disconnectBtn = document.getElementById('disconnectButton');
+            
+            statusElement.className = `status ${status}`;
+            statusElement.innerHTML = `
+                <div class="status-icon"></div>
+                <div>
+                    <strong>连接状态: ${message}</strong>
+                    <div style="font-size: 14px; color: #64748b;">${getStatusDescription(status)}</div>
+                </div>
+            `;
+            
+            if (status === 'connected') {
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+                document.getElementById('wsStatus').textContent = '已连接';
+            } else {
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+                document.getElementById('wsStatus').textContent = '未连接';
+            }
+        }
+        
+        function getStatusDescription(status) {
+            switch(status) {
+                case 'connected': return '可以接收指令和发送状态';
+                case 'connecting': return '正在建立连接...';
+                case 'disconnected': return '点击连接按钮重新连接';
+                default: return '';
+            }
+        }
+        
+        // 处理WebSocket消息
+        function handleWebSocketMessage(message) {
+            switch(message.type) {
+                case 'device_connected':
+                    addLog('系统', '设备连接确认', 'success');
+                    break;
+                case 'task_completed':
+                    addLog('任务', `任务完成: ${message.data.taskId}`, 'success');
+                    break;
+                case 'task_failed':
+                    addLog('任务', `任务失败: ${message.data.error}`, 'error');
+                    break;
+                case 'progress_update':
+                    addLog('进度', `任务进度: ${message.data.progress}%`, 'info');
+                    break;
+                case 'notification':
+                    addLog('通知', message.data.message, 'info');
+                    break;
+                default:
+                    addLog('消息', `未知消息类型: ${message.type}`, 'info');
+            }
+        }
+        
+        // 测试API连接
+        async function testApiConnection() {
+            try {
+                const response = await fetch(`http://${serverUrl}/health`);
+                if (response.ok) {
+                    document.getElementById('apiStatus').textContent = '正常';
+                    addLog('API', '后端服务连接正常', 'success');
+                } else {
+                    document.getElementById('apiStatus').textContent = '异常';
+                    addLog('API', '后端服务连接异常', 'error');
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = '失败';
+                addLog('API', `后端服务连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 添加日志
+        function addLog(type, message, level = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-${level}">[${type}] ${message}</span>
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 限制日志数量
+            if (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        // 开始运行时间计时
+        function startUptimeTimer() {
+            stopUptimeTimer();
+            uptimeInterval = setInterval(() => {
+                if (connectTime) {
+                    const uptime = Math.floor((new Date() - connectTime) / 1000);
+                    document.getElementById('uptimeDisplay').textContent = `${uptime}秒`;
+                    document.getElementById('lastActiveDisplay').textContent = new Date().toLocaleTimeString();
+                }
+            }, 1000);
+        }
+        
+        // 停止运行时间计时
+        function stopUptimeTimer() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+                uptimeInterval = null;
+            }
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            // 立即显示设备信息，无论是否有参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const deviceIdFromUrl = urlParams.get('deviceId') || '';
+            const serverFromUrl = window.location.host;
+            
+            if (deviceIdFromUrl) {
+                deviceId = deviceIdFromUrl;
+                serverUrl = serverFromUrl;
+                document.getElementById('deviceIdDisplay').textContent = deviceId;
+                document.getElementById('serverDisplay').textContent = serverUrl;
+                addLog('系统', `移动端连接页面初始化完成 - 设备ID: ${deviceId}`, 'info');
+            } else {
+                document.getElementById('deviceIdDisplay').textContent = '未设置';
+                document.getElementById('serverDisplay').textContent = '未设置';
+                addLog('系统', '移动端连接页面初始化完成 - 等待设备ID参数', 'info');
+            }
+        });
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', function() {
+            if (ws) {
+                ws.close(1000, '页面关闭');
+            }
+            stopUptimeTimer();
+        });
+    </script>
+</body>
+</html>
