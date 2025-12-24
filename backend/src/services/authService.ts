@@ -35,6 +35,18 @@ export class AuthService {
    */
   static async register(registerData: RegisterRequest): Promise<AuthResponse> {
     try {
+      // 检查是否启用演示模式
+      const isDemoMode = process.env.DEMO_MODE === 'true';
+      
+      // 如果启用演示模式，直接进入演示登录
+      if (isDemoMode) {
+        logger.warn('演示模式已启用，跳过注册验证');
+        return this.demoLogin({
+          username: registerData.username,
+          password: registerData.password
+        });
+      }
+      
       // 检查数据库连接状态，如果连接失败则进入演示模式
       if (mongoose.connection.readyState !== 1) {
         logger.warn('数据库连接失败，注册操作降级到演示模式');
@@ -104,6 +116,15 @@ export class AuthService {
    */
   static async login(loginData: LoginRequest): Promise<AuthResponse> {
     try {
+      // 检查是否启用演示模式
+      const isDemoMode = process.env.DEMO_MODE === 'true';
+      
+      // 如果启用演示模式，直接进入演示登录
+      if (isDemoMode) {
+        logger.warn('演示模式已启用，跳过账号验证');
+        return this.demoLogin(loginData);
+      }
+      
       // 检查数据库连接状态，如果连接失败则进入演示模式
       if (mongoose.connection.readyState !== 1) {
         logger.warn('数据库连接失败，进入演示模式');

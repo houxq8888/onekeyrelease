@@ -60,23 +60,20 @@ const AppSidebar: React.FC = () => {
       trigger={null} 
       collapsible 
       collapsed={sidebarCollapsed}
-      className="fixed left-0 h-full z-10"
+      className="bg-white border-r border-gray-200"
       style={{
         overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 64,
-        bottom: 0,
+        height: '100%',
+        position: 'relative',
       }}
     >
-      <div className="h-full bg-white border-r border-gray-200">
+      <div className="h-full bg-white">
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          className="border-none"
+          className="border-none h-full"
         />
       </div>
     </Sider>

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import express from 'express';
-import taskRoutes from './routes/tasks';
-import contentRoutes from './routes/content';
-import accountRoutes from './routes/accounts';
-import authRoutes from './routes/auth';
-import { asyncHandler } from '../middleware/errorHandler';
+import taskRoutes from './routes/tasks.js';
+import contentRoutes from './routes/content.js';
+import accountRoutes from './routes/accounts.js';
+import authRoutes from './routes/auth.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
 
 const router = Router();
 
