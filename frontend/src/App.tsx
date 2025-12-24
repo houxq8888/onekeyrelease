@@ -11,6 +11,7 @@ import ContentHistory from './pages/ContentHistory';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import StateMachineEditor from './pages/StateMachineEditor';
+import TemplateLibrary from './pages/TemplateLibrary';
 import { useAppStore } from './store/appStore';
 import { useAuthStore } from './store/authStore';
 
@@ -94,6 +95,7 @@ const App: React.FC = () => {
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/content" element={<ContentGenerator />} />
                     <Route path="/content/history" element={<ContentHistory />} />
+                    <Route path="/templates" element={<TemplateLibrary />} />
                     <Route path="/accounts" element={<Accounts />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/state-machine" element={<StateMachineEditor />} />

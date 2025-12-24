@@ -122,6 +122,18 @@ export const apiClient = {
     profile: () => api.get<ApiResponse>('/auth/me'),
   },
 
+  // 模板相关
+  templates: {
+    list: (params?: any) => api.get<ApiResponse>('/templates', { params }),
+    create: (data: any) => api.post<ApiResponse>('/templates', data),
+    get: (id: string) => api.get<ApiResponse>(`/templates/${id}`),
+    update: (id: string, data: any) => api.put<ApiResponse>(`/templates/${id}`, data),
+    delete: (id: string) => api.delete<ApiResponse>(`/templates/${id}`),
+    toggleFavorite: (id: string) => api.patch<ApiResponse>(`/templates/${id}/favorite`),
+    getPreset: () => api.get<ApiResponse>('/templates/preset/list'),
+    getCategories: () => api.get<ApiResponse>('/templates/categories/list'),
+  },
+
   // 移动端相关
   mobile: {
     // 获取移动端API信息

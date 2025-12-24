@@ -90,7 +90,7 @@ app.get('/mobile/connect', (req, res) => {
     }
     
     // 重定向到连接页面，但保留参数
-    res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
+    return res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
 });
 
 // API路由
