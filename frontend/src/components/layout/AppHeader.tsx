@@ -8,11 +8,13 @@ import {
   SettingOutlined 
 } from '@ant-design/icons';
 import { useAppStore } from '@store/appStore';
+import { useAuthStore } from '@store/authStore';
 
 const { Header } = Layout;
 
 const AppHeader: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { logout: authLogout } = useAuthStore();
 
   const userMenuItems = [
     {
@@ -41,6 +43,8 @@ const AppHeader: React.FC = () => {
       case 'logout':
         // 处理退出登录
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        authLogout();
         window.location.href = '/';
         break;
       case 'settings':

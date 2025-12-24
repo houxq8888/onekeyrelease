@@ -87,33 +87,31 @@ const App: React.FC = () => {
     <ConfigProvider locale={zhCN}>
       <QueryClientProvider client={queryClient}>
         <AntdApp>
-          <Router>
-            <Layout className="min-h-screen">
-              <AppHeader />
-              <Layout>
-                <AppSidebar />
-                <Layout 
-                  className="transition-all duration-200" 
-                  style={{ 
-                    marginLeft: sidebarCollapsed ? 80 : 200 
-                  }}
-                >
-                  <Content className="p-6 bg-gray-50">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/content" element={<ContentGenerator />} />
-                      <Route path="/accounts" element={<Accounts />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/state-machine" element={<StateMachineEditor />} />
-                      <Route path="/auth" element={<Navigate to="/" replace />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Content>
-                </Layout>
+          <Layout className="min-h-screen">
+            <AppHeader />
+            <Layout>
+              <AppSidebar />
+              <Layout 
+                className="transition-all duration-200" 
+                style={{ 
+                  marginLeft: sidebarCollapsed ? 80 : 200 
+                }}
+              >
+                <Content className="p-6 bg-gray-50">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/content" element={<ContentGenerator />} />
+                    <Route path="/accounts" element={<Accounts />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/state-machine" element={<StateMachineEditor />} />
+                    <Route path="/auth" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Content>
               </Layout>
             </Layout>
-          </Router>
+          </Layout>
         </AntdApp>
       </QueryClientProvider>
     </ConfigProvider>

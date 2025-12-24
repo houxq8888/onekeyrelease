@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { message } from 'antd';
 import { ApiResponse } from '@types';
 
 // 创建axios实例
@@ -34,18 +33,13 @@ api.interceptors.response.use(
   (error) => {
     const errorMessage = error.response?.data?.error || error.message || '请求失败';
     
-    // 显示错误消息
-    if (error.response?.status !== 401) {
-      message.error(errorMessage);
-    }
-    
     // 处理认证错误
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
     
-    return Promise.reject(error);
+    return Promise.reject(new Error(errorMessage));
   }
 );
 
@@ -83,8 +77,9 @@ export const apiClient = {
   // 认证相关
   auth: {
     login: (data: any) => api.post<ApiResponse>('/auth/login', data),
+    register: (data: any) => api.post<ApiResponse>('/auth/register', data),
     logout: () => api.post<ApiResponse>('/auth/logout'),
-    profile: () => api.get<ApiResponse>('/auth/profile'),
+    profile: () => api.get<ApiResponse>('/auth/me'),
   },
 };
 
