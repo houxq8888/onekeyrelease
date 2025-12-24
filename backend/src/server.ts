@@ -11,7 +11,7 @@ import { logger } from './utils/logger.js';
 import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
 
-dotenv.config();
+dotenv.config({ path: '../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,7 +31,7 @@ app.use(cors({
 // 速率限制
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 限制每个IP 15分钟内最多100次请求
+  max: 1000, // 限制每个IP 15分钟内最多1000次请求
   message: {
     success: false,
     error: '请求过于频繁，请稍后再试'
