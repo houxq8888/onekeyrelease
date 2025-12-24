@@ -15,6 +15,7 @@ import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
 import { MobileService } from './services/mobileService.js';
 import { WebSocketService } from './services/websocketService.js';
+import { initPresetTemplates } from './services/templateSeed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,6 +115,13 @@ async function startServer() {
     try {
       await connectDB();
       logger.info('✅ MongoDB connected successfully');
+      
+      // 初始化预设模板
+      try {
+        await initPresetTemplates();
+      } catch (error) {
+        logger.warn('⚠️ Preset templates initialization failed');
+      }
     } catch (error) {
       logger.warn('⚠️ MongoDB connection failed, running in demo mode');
     }

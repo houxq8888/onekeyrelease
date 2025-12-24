@@ -5,12 +5,19 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
+import { MobileService } from './services/mobileService.js';
+import { WebSocketService } from './services/websocketService.js';
+import { initPresetTemplates } from './services/templateSeed.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +59,28 @@ app.get('/health', (_req, res) => {
         environment: process.env.NODE_ENV
     });
 });
+// 静态文件服务 - 移动端设置指南
+const mobileDir = path.join(__dirname, '..', '..', 'mobile');
+app.use('/mobile', express.static(mobileDir, {
+    index: false,
+    setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        }
+    }
+}));
+// 移动端连接页面路由
+app.get('/mobile/connect', (req, res) => {
+    const deviceId = req.query.deviceId;
+    if (!deviceId) {
+        return res.status(400).json({
+            success: false,
+            error: '缺少设备ID参数'
+        });
+    }
+    // 重定向到连接页面，但保留参数
+    res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
+});
 // API路由
 app.use('/api', apiRoutes);
 // 错误处理中间件
@@ -70,6 +99,13 @@ async function startServer() {
         try {
             await connectDB();
             logger.info('✅ MongoDB connected successfully');
+            // 初始化预设模板
+            try {
+                await initPresetTemplates();
+            }
+            catch (error) {
+                logger.warn('⚠️ Preset templates initialization failed');
+            }
         }
         catch (error) {
             logger.warn('⚠️ MongoDB connection failed, running in demo mode');
@@ -91,10 +127,18 @@ async function startServer() {
                 logger.warn('⚠️ Failed to create default admin account');
             }
         }
+        // 初始化移动端服务
+        try {
+            await MobileService.initialize();
+            logger.info('✅ Mobile service initialized successfully');
+        }
+        catch (error) {
+            logger.warn('⚠️ Mobile service initialization failed');
+        }
         // 创建HTTP服务器
         const server = createServer(app);
-        // 初始化WebSocket服务（暂时禁用）
-        // WebSocketService.initialize(server);
+        // 初始化WebSocket服务
+        WebSocketService.initialize(server);
         server.listen(PORT, () => {
             logger.info(`🚀 Server running on port ${PORT}`);
             logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);

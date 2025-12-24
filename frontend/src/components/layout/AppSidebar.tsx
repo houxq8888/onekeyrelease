@@ -54,6 +54,11 @@ const AppSidebar: React.FC = () => {
       ],
     },
     {
+      key: '/templates',
+      icon: <FileTextOutlined />,
+      label: '模板库',
+    },
+    {
       key: '/state-machine',
       icon: <ProjectOutlined />,
       label: '状态机编辑器',

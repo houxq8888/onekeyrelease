@@ -123,6 +123,8 @@ router.post('/device/register', async (req, res, next) => {
             deviceName,
             platform
         });
+        // 设置正确的字符编码
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json({
             success: true,
             data: device,
@@ -139,6 +141,8 @@ router.post('/device/register', async (req, res, next) => {
 router.get('/devices', async (_req, res, next) => {
     try {
         const devices = await MobileService.getRegisteredDevices();
+        // 设置正确的字符编码
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json({
             success: true,
             data: devices,

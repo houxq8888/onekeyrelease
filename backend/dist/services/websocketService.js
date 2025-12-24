@@ -1,4 +1,4 @@
-import ws from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { logger } from '../utils/logger';
 /**
  * WebSocket服务类
@@ -11,7 +11,7 @@ export class WebSocketService {
      * 初始化WebSocket服务器
      */
     static initialize(server) {
-        this.wss = new ws.Server({
+        this.wss = new WebSocketServer({
             server,
             path: '/ws/mobile'
         });

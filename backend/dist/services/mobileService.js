@@ -2,6 +2,9 @@ import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { ContentService } from './contentService';
 import { WebSocketService } from './websocketService';
+import Device from '../models/Device.js';
+import { isMongoDBConnected } from '../config/database.js';
+import { FileStorage } from '../utils/fileStorage.js';
 /**
  * 移动端服务类
  * 处理手机端指令和内容管理
@@ -9,18 +12,86 @@ import { WebSocketService } from './websocketService';
 export class MobileService {
     static devices = new Map();
     static tasks = new Map();
+    static isInitialized = false;
+    /**
+     * 初始化移动端服务
+     */
+    static async initialize() {
+        if (this.isInitialized)
+            return;
+        try {
+            // 初始化文件存储
+            await FileStorage.initialize();
+            // 如果不是MongoDB模式，从文件加载设备数据
+            if (!isMongoDBConnected()) {
+                this.devices = await FileStorage.loadDevices();
+                logger.info(`从文件加载设备数据成功，共 ${this.devices.size} 个设备`);
+            }
+            this.isInitialized = true;
+            logger.info('移动端服务初始化完成');
+        }
+        catch (error) {
+            logger.error('移动端服务初始化失败:', error);
+        }
+    }
     /**
      * 注册设备
      */
     static async registerDevice(deviceInfo) {
-        const device = {
-            ...deviceInfo,
-            registeredAt: new Date(),
-            lastActiveAt: new Date()
-        };
-        this.devices.set(deviceInfo.deviceId, device);
-        logger.info(`设备注册成功: ${deviceInfo.deviceId}`, { deviceInfo });
-        return device;
+        try {
+            if (isMongoDBConnected()) {
+                // 使用MongoDB持久化存储
+                const deviceData = {
+                    deviceId: deviceInfo.deviceId,
+                    deviceName: deviceInfo.deviceName,
+                    platform: deviceInfo.platform,
+                    version: deviceInfo.version || '1.0.0',
+                    deviceType: deviceInfo.deviceType,
+                    registeredAt: new Date(),
+                    lastActiveAt: new Date(0),
+                    isOnline: false,
+                    status: 'active'
+                };
+                // 检查设备是否已存在
+                const existingDevice = await Device.findOne({ deviceId: deviceInfo.deviceId });
+                if (existingDevice) {
+                    // 更新现有设备信息
+                    const updatedDevice = await Device.findOneAndUpdate({ deviceId: deviceInfo.deviceId }, {
+                        deviceName: deviceInfo.deviceName,
+                        platform: deviceInfo.platform,
+                        version: deviceInfo.version,
+                        deviceType: deviceInfo.deviceType,
+                        lastActiveAt: new Date(0)
+                    }, { new: true });
+                    logger.info(`设备信息已更新: ${deviceInfo.deviceId}`, { deviceInfo });
+                    return this.mapDeviceToInfo(updatedDevice);
+                }
+                else {
+                    // 创建新设备
+                    const device = new Device(deviceData);
+                    const savedDevice = await device.save();
+                    logger.info(`设备注册成功: ${deviceInfo.deviceId}`, { deviceInfo });
+                    return this.mapDeviceToInfo(savedDevice);
+                }
+            }
+            else {
+                // 使用内存存储（兼容模式）
+                const device = {
+                    ...deviceInfo,
+                    registeredAt: new Date(),
+                    lastActiveAt: new Date(0) // 初始化为过去时间，避免立即显示在线
+                };
+                this.devices.set(deviceInfo.deviceId, device);
+                // 保存设备数据到文件
+                await FileStorage.saveDevices(this.devices);
+                logger.info(`设备注册成功（内存模式）: ${deviceInfo.deviceId}`, { deviceInfo });
+                return device;
+            }
+        }
+        catch (error) {
+            logger.error(`设备注册失败: ${deviceInfo.deviceId}`, { error, deviceInfo });
+            throw new AppError('设备注册失败', 500);
+        }
     }
     /**
      * 处理移动端指令
@@ -263,18 +334,43 @@ export class MobileService {
      * 获取已注册设备列表
      */
     static async getRegisteredDevices() {
-        return Array.from(this.devices.values()).map(device => ({
-            ...device,
-            isOnline: this.isDeviceOnline(device.deviceId)
-        }));
+        if (isMongoDBConnected()) {
+            try {
+                const devices = await Device.find({ status: 'active' });
+                return devices.map(device => ({
+                    ...this.mapDeviceToInfo(device),
+                    isOnline: this.isDeviceOnline(device.deviceId)
+                }));
+            }
+            catch (error) {
+                logger.error('获取设备列表失败', { error });
+                return [];
+            }
+        }
+        else {
+            return Array.from(this.devices.values()).map(device => ({
+                ...device,
+                isOnline: this.isDeviceOnline(device.deviceId)
+            }));
+        }
     }
     /**
      * 获取设备状态
      */
     static async getDeviceStatus(deviceId) {
-        const device = this.devices.get(deviceId);
-        if (!device) {
-            throw new AppError('设备不存在', 404);
+        let device = null;
+        if (isMongoDBConnected()) {
+            const dbDevice = await Device.findOne({ deviceId });
+            if (!dbDevice) {
+                throw new AppError('设备不存在', 404);
+            }
+            device = this.mapDeviceToInfo(dbDevice);
+        }
+        else {
+            device = this.devices.get(deviceId) || null;
+            if (!device) {
+                throw new AppError('设备不存在', 404);
+            }
         }
         const tasks = Array.from(this.tasks.values());
         const deviceTasks = tasks.filter(task => task.result && task.result.deviceId === deviceId);
@@ -290,11 +386,78 @@ export class MobileService {
      * 检查设备是否在线
      */
     static isDeviceOnline(deviceId) {
-        const device = this.devices.get(deviceId);
+        let device = null;
+        if (isMongoDBConnected()) {
+            try {
+                const dbDevice = Device.findOne({ deviceId });
+                if (!dbDevice)
+                    return false;
+                device = this.mapDeviceToInfo(dbDevice);
+            }
+            catch (error) {
+                return false;
+            }
+        }
+        else {
+            device = this.devices.get(deviceId) || null;
+        }
         if (!device)
             return false;
         // 如果设备在最近5分钟内活跃，则认为在线
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         return device.lastActiveAt > fiveMinutesAgo;
+    }
+    /**
+      * 将数据库设备对象映射为DeviceInfo接口
+      */
+    static mapDeviceToInfo(dbDevice) {
+        return {
+            deviceId: dbDevice.deviceId,
+            deviceName: dbDevice.deviceName,
+            platform: dbDevice.platform,
+            version: dbDevice.version,
+            deviceType: dbDevice.deviceType,
+            registeredAt: dbDevice.registeredAt,
+            lastActiveAt: dbDevice.lastActiveAt,
+            isOnline: dbDevice.isOnline
+        };
+    }
+    /**
+     * 更新设备最后活动时间
+     */
+    static async updateDeviceLastActive(deviceId) {
+        try {
+            if (isMongoDBConnected()) {
+                await Device.findOneAndUpdate({ deviceId }, { lastActiveAt: new Date() });
+            }
+            else {
+                const device = this.devices.get(deviceId);
+                if (device) {
+                    device.lastActiveAt = new Date();
+                    this.devices.set(deviceId, device);
+                }
+            }
+        }
+        catch (error) {
+            logger.error(`更新设备活动时间失败: ${deviceId}`, { error });
+        }
+    }
+    /**
+     * 删除设备
+     */
+    static async deleteDevice(deviceId) {
+        try {
+            if (isMongoDBConnected()) {
+                await Device.findOneAndUpdate({ deviceId }, { status: 'inactive' });
+            }
+            else {
+                this.devices.delete(deviceId);
+            }
+            logger.info(`设备已删除: ${deviceId}`);
+        }
+        catch (error) {
+            logger.error(`删除设备失败: ${deviceId}`, { error });
+            throw new AppError('删除设备失败', 500);
+        }
     }
 }
