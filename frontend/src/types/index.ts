@@ -92,6 +92,23 @@ export interface GenerationConfig {
   includeEmojis: boolean;
 }
 
+// 模板相关类型
+export interface Template {
+  _id: string;
+  name: string;
+  category: '美食' | '旅行' | '美妆' | '穿搭' | '家居' | '育儿' | '其他';
+  titleStructure: string;
+  contentFramework: string;
+  tagSuggestions: string[];
+  imageCountSuggestion: number;
+  description: string;
+  isPreset: boolean;
+  isFavorite: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 发布配置类型
 export interface PublishConfig {
   scheduleTime?: string;

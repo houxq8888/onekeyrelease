@@ -51,6 +51,11 @@ const AppSidebar: React.FC = () => {
           icon: <HistoryOutlined />,
           label: '历史内容',
         },
+        {
+          key: '/templates',
+          icon: <FileTextOutlined />,
+          label: '模板库',
+        },
       ],
     },
     {
