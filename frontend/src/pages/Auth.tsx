@@ -19,6 +19,7 @@ import {
 import { useMutation } from 'react-query';
 import { apiClient } from '@utils/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@store/authStore';
 
 const { Title, Text } = Typography;
 
@@ -26,16 +27,18 @@ const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { login } = useAuthStore();
 
   // 登录请求
   const loginMutation = useMutation(apiClient.auth.login, {
     onSuccess: (data) => {
       message.success('登录成功');
       // 存储token到localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('auth_token', data.data.token);
+      // 调用authStore的login方法更新状态
+      login(data.data.token, data.data.user);
       // 跳转到仪表板
-      navigate('/dashboard');
+      navigate('/');
     },
     onError: (error: any) => {
       message.error(error.response?.data?.error || '登录失败');

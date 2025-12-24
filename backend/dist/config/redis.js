@@ -16,7 +16,12 @@ export async function connectRedis() {
         redisClient.on('connect', () => {
             logger.info('Redis connected successfully');
         });
-        await redisClient.connect();
+        // 设置连接超时，避免无限等待
+        const connectPromise = redisClient.connect();
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Redis connection timeout')), 5000);
+        });
+        await Promise.race([connectPromise, timeoutPromise]);
     }
     catch (error) {
         logger.error('Failed to connect to Redis:', error);

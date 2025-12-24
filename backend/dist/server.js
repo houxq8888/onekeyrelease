@@ -4,13 +4,15 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/database.js';
 import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
-dotenv.config();
+// 从项目根目录加载.env文件
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.PORT || 3000;
 // 中间件配置
@@ -64,21 +66,37 @@ app.use('*', (_req, res) => {
 // 启动服务器
 async function startServer() {
     try {
-        // 连接数据库
-        await connectDB();
-        logger.info('✅ MongoDB connected successfully');
-        // 连接Redis
-        await connectRedis();
-        logger.info('✅ Redis connected successfully');
+        // 连接数据库（可选，开发环境可以跳过）
+        try {
+            await connectDB();
+            logger.info('✅ MongoDB connected successfully');
+        }
+        catch (error) {
+            logger.warn('⚠️ MongoDB connection failed, running in demo mode');
+        }
+        // 连接Redis（可选，开发环境可以跳过）
+        try {
+            await connectRedis();
+            logger.info('✅ Redis connected successfully');
+        }
+        catch (error) {
+            logger.warn('⚠️ Redis connection failed, running without cache');
+        }
         // 创建默认管理员账号（开发环境）
         if (process.env.NODE_ENV === 'development') {
-            await AuthService.createDefaultAdmin();
+            try {
+                await AuthService.createDefaultAdmin();
+            }
+            catch (error) {
+                logger.warn('⚠️ Failed to create default admin account');
+            }
         }
         app.listen(PORT, () => {
             logger.info(`🚀 Server running on port ${PORT}`);
             logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
             logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
             logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
+            logger.info('💡 Note: Some features may be limited without database connection');
         });
     }
     catch (error) {

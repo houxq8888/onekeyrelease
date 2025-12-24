@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/database.js';
 import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -11,7 +12,8 @@ import { logger } from './utils/logger.js';
 import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
 
-dotenv.config();
+// 从项目根目录加载.env文件
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -2,6 +2,7 @@ import User from '../models/User';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import mongoose from 'mongoose';
 export class AuthService {
     static JWT_SECRET = process.env.JWT_SECRET || 'onekeyrelease-secret-key';
     static JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -10,6 +11,24 @@ export class AuthService {
      */
     static async register(registerData) {
         try {
+            // 检查是否启用演示模式
+            const isDemoMode = process.env.DEMO_MODE === 'true';
+            // 如果启用演示模式，直接进入演示登录
+            if (isDemoMode) {
+                logger.warn('演示模式已启用，跳过注册验证');
+                return this.demoLogin({
+                    username: registerData.username,
+                    password: registerData.password
+                });
+            }
+            // 检查数据库连接状态，如果连接失败则进入演示模式
+            if (mongoose.connection.readyState !== 1) {
+                logger.warn('数据库连接失败，注册操作降级到演示模式');
+                return this.demoLogin({
+                    username: registerData.username,
+                    password: registerData.password
+                });
+            }
             // 检查用户名是否已存在
             const existingUser = await User.findOne({ username: registerData.username });
             if (existingUser) {
@@ -45,6 +64,14 @@ export class AuthService {
             if (error instanceof AppError) {
                 throw error;
             }
+            // 如果数据库操作失败，降级到演示模式
+            if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+                logger.warn('数据库操作失败，注册操作降级到演示模式');
+                return this.demoLogin({
+                    username: registerData.username,
+                    password: registerData.password
+                });
+            }
             logger.error(`用户注册失败: ${error.message}`);
             throw new AppError(`注册失败: ${error.message}`, 400);
         }
@@ -54,6 +81,18 @@ export class AuthService {
      */
     static async login(loginData) {
         try {
+            // 检查是否启用演示模式
+            const isDemoMode = process.env.DEMO_MODE === 'true';
+            // 如果启用演示模式，直接进入演示登录
+            if (isDemoMode) {
+                logger.warn('演示模式已启用，跳过账号验证');
+                return this.demoLogin(loginData);
+            }
+            // 检查数据库连接状态，如果连接失败则进入演示模式
+            if (mongoose.connection.readyState !== 1) {
+                logger.warn('数据库连接失败，进入演示模式');
+                return this.demoLogin(loginData);
+            }
             // 查找用户（包含密码）
             const user = await User.findByUsernameWithPassword(loginData.username);
             if (!user) {
@@ -88,6 +127,11 @@ export class AuthService {
             if (error instanceof AppError) {
                 throw error;
             }
+            // 如果数据库操作失败，降级到演示模式
+            if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+                logger.warn('数据库操作失败，降级到演示模式');
+                return this.demoLogin(loginData);
+            }
             logger.error(`用户登录失败: ${error.message}`);
             throw new AppError(`登录失败: ${error.message}`, 500);
         }
@@ -98,6 +142,21 @@ export class AuthService {
     static async verifyToken(token) {
         try {
             const decoded = jwt.verify(token, this.JWT_SECRET);
+            // 检查是否为演示模式用户
+            if (decoded.userId && decoded.userId.startsWith('demo-')) {
+                // 演示模式用户，直接返回虚拟用户信息
+                return {
+                    _id: decoded.userId,
+                    username: 'demo-user',
+                    email: 'demo@onekeyrelease.com',
+                    role: 'user',
+                    preferences: {},
+                };
+            }
+            // 检查数据库连接状态
+            if (mongoose.connection.readyState !== 1) {
+                throw new AppError('数据库连接失败，请重新登录', 401);
+            }
             // 查找用户
             const user = await User.findById(decoded.userId).select('-password');
             if (!user) {
@@ -120,6 +179,10 @@ export class AuthService {
             }
             if (error instanceof jwt.TokenExpiredError) {
                 throw new AppError('Token已过期', 401);
+            }
+            // 如果数据库操作失败，允许演示模式用户继续使用
+            if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+                throw new AppError('数据库连接失败，请重新登录', 401);
             }
             throw error;
         }
@@ -190,5 +253,26 @@ export class AuthService {
         catch (error) {
             logger.error('创建默认管理员账号失败:', error);
         }
+    }
+    /**
+     * 演示模式登录（数据库不可用时）
+     */
+    static demoLogin(loginData) {
+        // 在演示模式下，接受任意用户名和密码
+        // 生成一个虚拟的用户ID
+        const demoUserId = `demo-${Date.now()}`;
+        // 生成JWT token
+        const token = this.generateToken(demoUserId);
+        logger.info(`演示模式登录成功: ${loginData.username}`);
+        return {
+            user: {
+                _id: demoUserId,
+                username: loginData.username,
+                email: `${loginData.username}@demo.onekeyrelease.com`,
+                role: 'user',
+                preferences: {},
+            },
+            token,
+        };
     }
 }
