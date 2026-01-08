@@ -2,8 +2,8 @@ import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { ContentService } from './contentService';
 import { WebSocketService } from './websocketService';
-import Device, { IDevice } from '../models/Device.js';
-import { isMongoDBConnected, memoryStorage } from '../config/database.js';
+import Device from '../models/Device.js';
+import { isMongoDBConnected } from '../config/database.js';
 import { FileStorage } from '../utils/fileStorage.js';
 
 // 移动端指令类型

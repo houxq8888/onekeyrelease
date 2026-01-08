@@ -229,6 +229,45 @@
                 </div>
             </div>
             
+            <div class="status-card">
+                <h3>🔗 二维码连接</h3>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div id="qrcodeContainer" style="display: none;">
+                        <img id="qrcodeImage" src="" alt="设备配对二维码" style="max-width: 200px; max-height: 200px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                        <div style="margin-top: 10px; font-size: 14px; color: #64748b;">扫描此二维码快速连接设备</div>
+                    </div>
+                    <div id="qrcodeLoading" style="display: none;">
+                        <div style="display: inline-block; width: 200px; height: 200px; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                <div>生成二维码中...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="button" id="generateQRButton" onclick="generateQRCode()" style="margin-top: 10px;">生成配对二维码</button>
+                    <button class="button" id="scanQRButton" onclick="scanQRCode()" style="margin-top: 10px; background: #10b981;">扫描二维码连接</button>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">二维码状态</div>
+                        <div class="info-value" id="qrStatus">未生成</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">生成时间</div>
+                        <div class="info-value" id="qrTimeDisplay">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">有效期</div>
+                        <div class="info-value" id="qrExpiryDisplay">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">扫描次数</div>
+                        <div class="info-value" id="qrScanCount">0</div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="log-container" id="logContainer">
                 <div class="log-entry"><span class="log-time">[系统]</span> <span class="log-info">移动端连接页面已加载</span></div>
             </div>
@@ -488,6 +527,210 @@
                 clearInterval(uptimeInterval);
                 uptimeInterval = null;
             }
+        }
+        
+        // 二维码相关功能
+        let qrCodeData = null;
+        let qrCodeExpiry = null;
+        
+        // 生成二维码
+        async function generateQRCode() {
+            if (!deviceId) {
+                addLog('二维码', '请先设置设备ID', 'error');
+                return;
+            }
+            
+            try {
+                // 显示加载状态
+                document.getElementById('qrcodeLoading').style.display = 'block';
+                document.getElementById('qrcodeContainer').style.display = 'none';
+                document.getElementById('generateQRButton').disabled = true;
+                document.getElementById('qrStatus').textContent = '生成中';
+                
+                addLog('二维码', '正在生成配对二维码...', 'info');
+                
+                // 调用后端API生成二维码
+                const response = await fetch(`http://${serverUrl}/api/mobile/qrcode`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        deviceId: deviceId,
+                        serverUrl: `http://${serverUrl}`,
+                        type: 'pairing'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.qrCode) {
+                    // 显示二维码
+                    document.getElementById('qrcodeImage').src = result.qrCode;
+                    document.getElementById('qrcodeLoading').style.display = 'none';
+                    document.getElementById('qrcodeContainer').style.display = 'block';
+                    
+                    // 更新状态信息
+                    qrCodeData = result.data;
+                    qrCodeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10分钟有效期
+                    
+                    document.getElementById('qrStatus').textContent = '已生成';
+                    document.getElementById('qrTimeDisplay').textContent = new Date().toLocaleTimeString();
+                    document.getElementById('qrExpiryDisplay').textContent = qrCodeExpiry.toLocaleTimeString();
+                    document.getElementById('qrScanCount').textContent = '0';
+                    
+                    addLog('二维码', '配对二维码生成成功', 'success');
+                    
+                    // 开始二维码有效期倒计时
+                    startQRCodeExpiryTimer();
+                    
+                } else {
+                    throw new Error(result.error || '二维码生成失败');
+                }
+                
+            } catch (error) {
+                addLog('二维码', `生成二维码失败: ${error.message}`, 'error');
+                document.getElementById('qrStatus').textContent = '生成失败';
+            } finally {
+                document.getElementById('generateQRButton').disabled = false;
+            }
+        }
+        
+        // 扫描二维码
+        function scanQRCode() {
+            addLog('二维码', '扫描二维码功能需要移动端摄像头支持', 'info');
+            
+            // 检查是否支持摄像头API
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                addLog('二维码', '当前浏览器不支持摄像头访问，请使用移动设备', 'error');
+                return;
+            }
+            
+            // 创建扫描界面
+            const scanModal = document.createElement('div');
+            scanModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            scanModal.innerHTML = `
+                <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 90%;">
+                    <h3 style="margin-bottom: 20px;">📷 扫描二维码</h3>
+                    <video id="qrScanner" style="width: 300px; height: 300px; border: 2px solid #e2e8f0; border-radius: 8px;"></video>
+                    <div style="margin-top: 15px; color: #64748b;">将二维码对准摄像头进行扫描</div>
+                    <button onclick="closeQRScanner()" style="margin-top: 15px; background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">取消扫描</button>
+                </div>
+            `;
+            
+            document.body.appendChild(scanModal);
+            
+            // 启动摄像头扫描
+            startQRCodeScanning();
+        }
+        
+        // 启动二维码扫描
+        async function startQRCodeScanning() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('qrScanner');
+                video.srcObject = stream;
+                video.play();
+                
+                addLog('二维码', '摄像头已启动，开始扫描...', 'info');
+                
+                // 这里可以集成二维码扫描库，如jsQR
+                // 由于需要额外库，这里先实现基本功能
+                
+            } catch (error) {
+                addLog('二维码', `摄像头启动失败: ${error.message}`, 'error');
+                closeQRScanner();
+            }
+        }
+        
+        // 关闭二维码扫描
+        function closeQRScanner() {
+            const modal = document.querySelector('div[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+            
+            // 停止摄像头流
+            const video = document.getElementById('qrScanner');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            
+            addLog('二维码', '扫描已取消', 'info');
+        }
+        
+        // 处理扫描到的二维码数据
+        function handleScannedQRCode(data) {
+            try {
+                const qrData = JSON.parse(data);
+                
+                if (qrData.type === 'device_pairing') {
+                    addLog('二维码', `扫描到配对二维码: ${qrData.deviceId}`, 'success');
+                    
+                    // 自动设置设备ID并连接
+                    deviceId = qrData.deviceId;
+                    document.getElementById('deviceIdDisplay').textContent = deviceId;
+                    
+                    // 更新扫描次数
+                    const scanCount = parseInt(document.getElementById('qrScanCount').textContent) + 1;
+                    document.getElementById('qrScanCount').textContent = scanCount;
+                    
+                    // 自动连接
+                    setTimeout(() => {
+                        connectToServer();
+                    }, 1000);
+                    
+                    closeQRScanner();
+                    
+                } else {
+                    addLog('二维码', '无效的二维码类型', 'error');
+                }
+                
+            } catch (error) {
+                addLog('二维码', `二维码数据解析失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 二维码有效期倒计时
+        function startQRCodeExpiryTimer() {
+            const expiryInterval = setInterval(() => {
+                if (!qrCodeExpiry) {
+                    clearInterval(expiryInterval);
+                    return;
+                }
+                
+                const now = new Date();
+                const timeLeft = Math.max(0, qrCodeExpiry - now);
+                
+                if (timeLeft === 0) {
+                    // 二维码已过期
+                    document.getElementById('qrcodeContainer').style.display = 'none';
+                    document.getElementById('qrStatus').textContent = '已过期';
+                    document.getElementById('qrExpiryDisplay').textContent = '已过期';
+                    addLog('二维码', '二维码已过期，请重新生成', 'warning');
+                    clearInterval(expiryInterval);
+                } else {
+                    const minutes = Math.floor(timeLeft / 60000);
+                    const seconds = Math.floor((timeLeft % 60000) / 1000);
+                    document.getElementById('qrExpiryDisplay').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
         }
         
         // 页面加载时初始化

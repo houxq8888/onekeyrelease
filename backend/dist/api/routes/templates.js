@@ -1,6 +1,6 @@
 import express from 'express';
-import { authMiddleware } from '../../middleware/auth';
 import { TemplateService } from '../../services/templateService';
+import { authMiddleware } from '../../middleware/auth';
 import { logger } from '../../utils/logger';
 const router = express.Router();
 // 创建模板

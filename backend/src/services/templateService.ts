@@ -165,7 +165,7 @@ export class TemplateService {
   // 获取用户收藏的模板
   static async getFavorites(userId: string): Promise<ITemplate[]> {
     const favorites = await TemplateFavorite.find({ userId }).populate('templateId');
-    return favorites.map(fav => fav.templateId as ITemplate);
+    return favorites.map(fav => fav.templateId as unknown as ITemplate);
   }
 
   // 检查模板是否已收藏

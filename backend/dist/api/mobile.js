@@ -2,6 +2,8 @@ import express from 'express';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { MobileService } from '../services/mobileService';
+import { PairingService } from '../services/pairingService';
+import { QRCodeService } from '../services/qrCodeService';
 const router = express.Router();
 /**
  * 移动端API信息
@@ -154,19 +156,52 @@ router.get('/devices', async (_req, res, next) => {
     }
 });
 /**
- * 获取设备状态
+ * 生成设备配对二维码
  */
-router.get('/device/status/:deviceId', async (req, res, next) => {
+router.post('/qrcode', async (req, res, next) => {
     try {
-        const { deviceId } = req.params;
+        const { deviceId, serverUrl, type = 'pairing' } = req.body;
+        if (!deviceId || !serverUrl) {
+            throw new AppError('缺少必要参数: deviceId 和 serverUrl', 400);
+        }
+        let qrCode, data;
+        switch (type) {
+            case 'pairing':
+                qrCode = await QRCodeService.generatePairingQRCode(deviceId, serverUrl);
+                data = QRCodeService.parseQRCodeData(qrCode);
+                break;
+            case 'connection':
+                qrCode = await QRCodeService.generateConnectionQRCode(deviceId, serverUrl);
+                data = QRCodeService.parseQRCodeData(qrCode);
+                break;
+            default:
+                throw new AppError(`不支持的二维码类型: ${type}`, 400);
+        }
+        res.json({
+            success: true,
+            data: { qrCode, data },
+            message: '二维码生成成功'
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+/**
+ * 生成连接二维码
+ */
+router.post('/pairing/connection-qrcode', async (req, res, next) => {
+    try {
+        const { deviceId } = req.body;
+        const serverUrl = req.protocol + '://' + req.get('host');
         if (!deviceId) {
             throw new AppError('缺少设备ID', 400);
         }
-        const status = await MobileService.getDeviceStatus(deviceId);
+        const qrCode = await PairingService.generateConnectionQRCode(deviceId, serverUrl);
         res.json({
             success: true,
-            data: status,
-            message: '设备状态获取成功'
+            data: { qrCode },
+            message: '连接二维码生成成功'
         });
     }
     catch (error) {

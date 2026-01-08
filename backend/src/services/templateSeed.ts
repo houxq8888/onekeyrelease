@@ -1,8 +1,17 @@
-import { Template, ITemplate } from '../models/Template';
+import { Template } from '../models/Template';
 import { logger } from '../utils/logger';
 
 // 预设模板数据
-const presetTemplates: Omit<ITemplate, '_id' | 'createdBy' | 'createdAt' | 'updatedAt'>[] = [
+const presetTemplates: Array<{
+  name: string;
+  category: '美食' | '旅行' | '美妆' | '穿搭' | '家居' | '育儿' | '其他';
+  description: string;
+  titleStructure: string[];
+  contentFramework: string[];
+  tagSuggestions: string[];
+  imageCountSuggestion: number;
+  isDefault: boolean;
+}> = [
   {
     name: '美食探店模板',
     category: '美食',

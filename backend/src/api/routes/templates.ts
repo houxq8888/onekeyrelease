@@ -1,12 +1,12 @@
 import express from 'express';
-import { authMiddleware } from '../../middleware/auth';
 import { TemplateService } from '../../services/templateService';
+import { authMiddleware, AuthRequest } from '../../middleware/auth';
 import { logger } from '../../utils/logger';
 
 const router = express.Router();
 
 // 创建模板
-router.post('/', authMiddleware, async (req, res, next) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const templateData = req.body;
@@ -24,7 +24,7 @@ router.post('/', authMiddleware, async (req, res, next) => {
 });
 
 // 获取模板列表
-router.get('/', authMiddleware, async (req, res, next) => {
+router.get('/', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { category, search, isFavorite } = req.query;
@@ -62,7 +62,7 @@ router.get('/:templateId', authMiddleware, async (req, res, next) => {
 });
 
 // 更新模板
-router.put('/:templateId', authMiddleware, async (req, res, next) => {
+router.put('/:templateId', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { templateId } = req.params;
@@ -81,7 +81,7 @@ router.put('/:templateId', authMiddleware, async (req, res, next) => {
 });
 
 // 删除模板
-router.delete('/:templateId', authMiddleware, async (req, res, next) => {
+router.delete('/:templateId', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { templateId } = req.params;
@@ -99,7 +99,7 @@ router.delete('/:templateId', authMiddleware, async (req, res, next) => {
 });
 
 // 收藏模板
-router.post('/:templateId/favorite', authMiddleware, async (req, res, next) => {
+router.post('/:templateId/favorite', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { templateId } = req.params;
@@ -117,7 +117,7 @@ router.post('/:templateId/favorite', authMiddleware, async (req, res, next) => {
 });
 
 // 取消收藏模板
-router.delete('/:templateId/favorite', authMiddleware, async (req, res, next) => {
+router.delete('/:templateId/favorite', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { templateId } = req.params;
@@ -135,7 +135,7 @@ router.delete('/:templateId/favorite', authMiddleware, async (req, res, next) =>
 });
 
 // 获取用户收藏的模板
-router.get('/favorites/list', authMiddleware, async (req, res, next) => {
+router.get('/favorites/list', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
 
@@ -151,7 +151,7 @@ router.get('/favorites/list', authMiddleware, async (req, res, next) => {
 });
 
 // 检查模板是否已收藏
-router.get('/:templateId/favorite', authMiddleware, async (req, res, next) => {
+router.get('/:templateId/favorite', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { _id: userId } = req.user;
     const { templateId } = req.params;

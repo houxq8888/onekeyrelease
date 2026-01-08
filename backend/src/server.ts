@@ -91,7 +91,7 @@ app.get('/mobile/connect', (req, res) => {
     }
     
     // 重定向到连接页面，但保留参数
-    res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
+    return res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
 });
 
 // API路由
@@ -157,6 +157,9 @@ async function startServer() {
     // 初始化WebSocket服务
     WebSocketService.initialize(server);
 
+    // 启动会话清理任务
+    WebSocketService.startSessionCleanup();
+
     server.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -164,6 +167,7 @@ async function startServer() {
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔗 WebSocket URL: ws://localhost:${PORT}/ws/mobile`);
       logger.info('💡 Note: Some features may be limited without database connection');
+      logger.info('🔄 Session cleanup task started');
     });
   } catch (error) {
     logger.error('❌ Failed to start server:', error);
