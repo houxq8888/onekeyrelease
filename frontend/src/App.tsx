@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+import zhTW from 'antd/locale/zh_TW';
+import enUS from 'antd/locale/en_US';
 import AppHeader from './components/layout/AppHeader';
 import AppSidebar from './components/layout/AppSidebar';
 import Dashboard from './pages/Dashboard';
@@ -14,14 +16,38 @@ import StateMachineEditor from './pages/StateMachineEditor';
 import TemplatesLibrary from './pages/TemplatesLibrary';
 import { useAppStore } from './store/appStore';
 import { useAuthStore } from './store/authStore';
+import { useLocaleStore } from './store/localeStore';
 
 
 const { Content } = Layout;
 
 const App: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme, language } = useAppStore();
   const { isAuthenticated, token, user, login } = useAuthStore();
+  const { setLanguage: setLocaleLanguage } = useLocaleStore();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const locale = useMemo(() => {
+    return language === 'zh-CN' ? zhCN : language === 'zh-TW' ? zhTW : enUS;
+  }, [language]);
+  
+  const antdTheme = {
+    algorithm: theme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+  };
+
+  // 应用深色模式到 body
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // 同步 appStore 和 localeStore 的语言
+  useEffect(() => {
+    setLocaleLanguage(language);
+  }, [language, setLocaleLanguage]);
 
   console.log('App组件认证状态:', { isAuthenticated, token, user });
 
@@ -58,12 +84,12 @@ const App: React.FC = () => {
   // 如果正在检查认证状态，显示加载中
   if (isCheckingAuth) {
     return (
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider locale={locale} theme={antdTheme}>
         <AntdApp>
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">初始化演示版本...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">初始化演示版本...</p>
             </div>
           </div>
         </AntdApp>
@@ -75,17 +101,17 @@ const App: React.FC = () => {
   console.log('演示版本，直接进入主界面');
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={locale} theme={antdTheme} key={language}>
         <AntdApp>
-          <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+          <Layout style={{ minHeight: '100vh', backgroundColor: theme === 'dark' ? '#141414' : '#ffffff' }}>
             <AppHeader />
-            <Layout style={{ backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+            <Layout style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
               <AppSidebar />
               <Layout 
                 className="transition-all duration-200" 
                 style={{ 
                   marginLeft: sidebarCollapsed ? 80 : 200,
-                  backgroundColor: '#f0f2f5',
+                  backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f0f2f5',
                   minHeight: 'calc(100vh - 64px)'
                 }}
               >

@@ -22,6 +22,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { Task } from '../types';
+import { useLocaleStore } from '../store/localeStore';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -31,10 +32,15 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { t } = useLocaleStore();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
+    // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
+    if (response.data && response.data.tasks) {
+      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    }
     return Array.isArray(response.data) ? response.data : [];
   });
 
@@ -80,7 +86,25 @@ const Tasks: React.FC = () => {
   );
 
   const handleCreateTask = (values: any) => {
-    createMutation.mutate(values);
+    const taskData = {
+      title: values.title,
+      description: values.description,
+      type: values.type,
+      config: {
+        contentConfig: {
+          theme: values.title,
+          keywords: [],
+          targetAudience: 'general',
+          style: 'casual',
+          wordCount: 500,
+        },
+        publishConfig: values.publishTime ? {
+          scheduleTime: values.publishTime.toDate(),
+          autoPublish: true,
+        } : undefined,
+      },
+    };
+    createMutation.mutate(taskData);
   };
 
   const handleStartTask = (id: string) => {
@@ -129,8 +153,8 @@ const Tasks: React.FC = () => {
       render: (type: string) => {
         const typeText = {
           content_generation: '内容生成',
-          publish: '发布',
-          both: '生成并发布',
+          content_publish: '发布',
+          batch: '生成并发布',
         };
         return typeText[type as keyof typeof typeText] || type;
       },
@@ -150,7 +174,7 @@ const Tasks: React.FC = () => {
             <Button
               type="link"
               icon={<PlayCircleOutlined />}
-              onClick={() => handleStartTask(record.id)}
+              onClick={() => handleStartTask(record._id || record.id)}
             >
               启动
             </Button>
@@ -169,7 +193,7 @@ const Tasks: React.FC = () => {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDeleteTask(record.id)}
+            onClick={() => handleDeleteTask(record._id || record.id)}
           >
             删除
           </Button>
@@ -200,7 +224,7 @@ const Tasks: React.FC = () => {
         <Table
           columns={columns}
           dataSource={tasks}
-          rowKey="id"
+          rowKey={(record) => record._id || record.id}
           loading={isLoading}
           pagination={{
             pageSize: 10,
@@ -227,7 +251,7 @@ const Tasks: React.FC = () => {
           layout="vertical"
           onFinish={handleCreateTask}
           initialValues={editingTask || {
-            type: 'both',
+            type: 'batch',
           }}
         >
           <Form.Item
@@ -255,8 +279,8 @@ const Tasks: React.FC = () => {
           >
             <Select placeholder="请选择任务类型">
               <Option value="content_generation">内容生成</Option>
-              <Option value="publish">发布</Option>
-              <Option value="both">生成并发布</Option>
+              <Option value="content_publish">发布</Option>
+              <Option value="batch">生成并发布</Option>
             </Select>
           </Form.Item>
 
