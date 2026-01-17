@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+import zhTW from 'antd/locale/zh_TW';
+import enUS from 'antd/locale/en_US';
 import AppHeader from './components/layout/AppHeader';
 import AppSidebar from './components/layout/AppSidebar';
 import Dashboard from './pages/Dashboard';
@@ -14,14 +16,34 @@ import StateMachineEditor from './pages/StateMachineEditor';
 import TemplatesLibrary from './pages/TemplatesLibrary';
 import { useAppStore } from './store/appStore';
 import { useAuthStore } from './store/authStore';
+import './index.css';
 
 
 const { Content } = Layout;
 
 const App: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme: appTheme, language } = useAppStore();
   const { isAuthenticated, token, user, login } = useAuthStore();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const localeMap: Record<string, any> = {
+    'zh-CN': zhCN,
+    'zh-TW': zhTW,
+    'en-US': enUS,
+  };
+
+  const currentLocale = localeMap[language] || zhCN;
+  const currentAlgorithm = appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm;
+  
+  console.log('App组件渲染 - 主题:', appTheme, '语言:', language, '算法类型:', appTheme === 'dark' ? 'darkAlgorithm' : 'defaultAlgorithm');
+
+  useEffect(() => {
+    console.log('主题切换:', appTheme);
+  }, [appTheme]);
+
+  useEffect(() => {
+    console.log('语言切换:', language);
+  }, [language]);
 
   console.log('App组件认证状态:', { isAuthenticated, token, user });
 
@@ -58,12 +80,12 @@ const App: React.FC = () => {
   // 如果正在检查认证状态，显示加载中
   if (isCheckingAuth) {
     return (
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider locale={currentLocale}>
         <AntdApp>
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className={appTheme === 'dark' ? 'min-h-screen flex items-center justify-center bg-gray-900' : 'min-h-screen flex items-center justify-center bg-gray-50'}>
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">初始化演示版本...</p>
+              <div className={appTheme === 'dark' ? 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto' : 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto'}></div>
+              <p className={appTheme === 'dark' ? 'mt-4 text-gray-300' : 'mt-4 text-gray-600'}>初始化演示版本...</p>
             </div>
           </div>
         </AntdApp>
@@ -75,17 +97,21 @@ const App: React.FC = () => {
   console.log('演示版本，直接进入主界面');
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider 
+      locale={currentLocale}
+      theme={{
+        algorithm: currentAlgorithm,
+      }}
+    >
         <AntdApp>
-          <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+          <Layout className={appTheme === 'dark' ? 'dark-theme' : ''} style={{ minHeight: '100vh' }}>
             <AppHeader />
-            <Layout style={{ backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+            <Layout style={{ minHeight: 'calc(100vh - 64px)' }}>
               <AppSidebar />
               <Layout 
                 className="transition-all duration-200" 
                 style={{ 
                   marginLeft: sidebarCollapsed ? 80 : 200,
-                  backgroundColor: '#f0f2f5',
                   minHeight: 'calc(100vh - 64px)'
                 }}
               >

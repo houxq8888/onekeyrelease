@@ -101,6 +101,28 @@ body {
   }
 }
 
+/* 深色模式全局样式 */
+.dark-theme body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark-theme {
+  background-color: #0f172a;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 /* 暗色主题支持 */
 @media (prefers-color-scheme: dark) {
   body {
@@ -111,4 +133,189 @@ body {
   .card {
     @apply bg-slate-800 border-slate-700;
   }
+}
+
+/* 手动暗色主题样式 */
+.dark-theme body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark-theme .card {
+  @apply bg-slate-800 border-slate-700;
+}
+
+/* Ant Design 暗色主题增强样式 */
+.dark-theme {
+  background-color: #0f172a;
+}
+
+.dark-theme .ant-layout {
+  background-color: #0f172a;
+}
+
+.dark-theme .ant-layout-header {
+  background-color: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.dark-theme .ant-layout-sider {
+  background-color: #1e293b;
+  border-right: 1px solid #334155;
+}
+
+.dark-theme .ant-layout-content {
+  background-color: #0f172a;
+}
+
+.dark-theme .ant-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark-theme .ant-btn-default {
+  background-color: #334155;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-btn-default:hover {
+  background-color: #475569;
+  border-color: #64748b;
+  color: #f1f5f9;
+}
+
+.dark-theme .ant-input,
+.dark-theme .ant-select-selector,
+.dark-theme .ant-picker {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-input:hover,
+.dark-theme .ant-select-selector:hover,
+.dark-theme .ant-picker:hover {
+  border-color: #64748b;
+}
+
+.dark-theme .ant-input:focus,
+.dark-theme .ant-select-focused .ant-select-selector,
+.dark-theme .ant-picker-focused {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dark-theme .ant-menu {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-menu-item {
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-menu-item:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-theme .ant-menu-item-selected {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .ant-table {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-table-thead > tr > th {
+  background-color: #334155;
+  color: #e2e8f0;
+  border-bottom: 1px solid #475569;
+}
+
+.dark-theme .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #475569;
+}
+
+.dark-theme .ant-table-tbody > tr:hover > td {
+  background-color: #334155;
+}
+
+.dark-theme .ant-modal-content {
+  background-color: #1e293b;
+  border-color: #475569;
+}
+
+.dark-theme .ant-modal-header {
+  background-color: #334155;
+  border-bottom: 1px solid #475569;
+}
+
+.dark-theme .ant-modal-title {
+  color: #f1f5f9;
+}
+
+.dark-theme .ant-divider {
+  border-color: #475569;
+}
+
+.dark-theme .ant-tag {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+.dark-theme .ant-switch {
+  background-color: #475569;
+}
+
+.dark-theme .ant-checkbox-inner {
+  background-color: #1e293b;
+  border-color: #475569;
+}
+
+.dark-theme .ant-radio-inner {
+  background-color: #1e293b;
+  border-color: #475569;
+}
+
+.dark-theme .ant-tabs-tab {
+  color: #94a3b8;
+}
+
+.dark-theme .ant-tabs-tab-active {
+  color: #3b82f6;
+}
+
+.dark-theme .ant-tabs-ink-bar {
+  background-color: #3b82f6;
+}
+
+.dark-theme .ant-pagination-item {
+  background-color: #1e293b;
+  border-color: #475569;
+}
+
+.dark-theme .ant-pagination-item a {
+  color: #e2e8f0;
+}
+
+.dark-theme .ant-pagination-item-active {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.dark-theme .ant-pagination-item-active a {
+  color: #ffffff;
+}
+
+/* 图标颜色在暗色主题下自适应 */
+.dark-theme .anticon {
+  color: inherit;
+}
+
+.dark-theme .ant-btn .anticon {
+  color: inherit;
 }
