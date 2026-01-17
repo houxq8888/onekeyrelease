@@ -99,3 +99,33 @@ export interface PublishConfig {
   maxRetries: number;
   notifyOnComplete: boolean;
 }
+
+// 模板相关类型
+export type TemplateCategory = '美食' | '旅行' | '美妆' | '穿搭' | '家居' | '育儿' | '其他';
+
+export interface Template {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  description: string;
+  titleStructure: string[];
+  contentFramework: string[];
+  tagSuggestions: string[];
+  imageCountSuggestion: number;
+  isDefault: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateFilter {
+  category?: TemplateCategory;
+  search?: string;
+  isFavorite?: boolean;
+}
+
+export interface TemplateFavorite {
+  userId: string;
+  templateId: string;
+  createdAt: string;
+}

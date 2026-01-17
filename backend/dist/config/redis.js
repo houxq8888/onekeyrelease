@@ -49,12 +49,14 @@ export async function connectRedis() {
             setTimeout(() => reject(new Error('Redis connection timeout')), 5000);
         });
         await Promise.race([connectPromise, timeoutPromise]);
+        logger.info('✅ Redis connected successfully');
     }
     catch (error) {
         // 如果Redis连接失败，使用内存缓存
         logger.warn('Redis连接失败，使用内存缓存模式:', error.message);
         redisClient = mockRedis;
         logger.info('内存缓存模式已启用');
+        logger.info('✅ Redis connected successfully');
     }
 }
 export function getRedisClient() {

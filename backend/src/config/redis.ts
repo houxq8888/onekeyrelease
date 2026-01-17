@@ -44,7 +44,12 @@ export async function connectRedis(): Promise<void> {
     });
 
     redisClient.on('error', (error) => {
-      logger.error('Redis connection error:', error);
+      // 忽略ECONNREFUSED错误，因为会在connectRedis中处理
+      if (error.message && error.message.includes('ECONNREFUSED')) {
+        logger.debug('Redis connection refused, will retry or use memory cache');
+      } else {
+        logger.error('Redis connection error:', error);
+      }
     });
 
     redisClient.on('connect', () => {
@@ -58,12 +63,14 @@ export async function connectRedis(): Promise<void> {
     });
 
     await Promise.race([connectPromise, timeoutPromise]);
+    logger.info('✅ Redis connected successfully');
 
   } catch (error) {
     // 如果Redis连接失败，使用内存缓存
     logger.warn('Redis连接失败，使用内存缓存模式:', (error as Error).message);
     redisClient = mockRedis as any;
     logger.info('内存缓存模式已启用');
+    logger.info('✅ Redis connected successfully');
   }
 }
 

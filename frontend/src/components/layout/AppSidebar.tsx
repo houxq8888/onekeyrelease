@@ -15,13 +15,13 @@ import { useAppStore } from '@store/appStore';
 const { Sider } = Layout;
 
 const AppSidebar: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
 
   const appTitle = (
-    <div className="flex items-center justify-center h-16 border-b border-gray-200">
-      <h1 className="text-xl font-bold text-gray-800">OneKeyRelease</h1>
+    <div className={`flex items-center justify-center h-16 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+      <h1 className={theme === 'dark' ? 'text-xl font-bold text-gray-100' : 'text-xl font-bold text-gray-800'}>OneKeyRelease</h1>
     </div>
   );
 
@@ -54,6 +54,11 @@ const AppSidebar: React.FC = () => {
       ],
     },
     {
+      key: '/templates',
+      icon: <FileTextOutlined />,
+      label: '模板库',
+    },
+    {
       key: '/state-machine',
       icon: <ProjectOutlined />,
       label: '状态机编辑器',
@@ -79,7 +84,7 @@ const AppSidebar: React.FC = () => {
       trigger={null} 
       collapsible 
       collapsed={sidebarCollapsed}
-      className="fixed left-0 bg-white border-r border-gray-200"
+      className={theme === 'dark' ? 'fixed left-0 bg-gray-900 border-r border-gray-700' : 'fixed left-0 bg-white border-r border-gray-200'}
       style={{
         overflow: 'auto',
         height: 'calc(100vh - 64px)',
@@ -87,10 +92,10 @@ const AppSidebar: React.FC = () => {
         left: 0,
         top: 64,
         bottom: 0,
-        backgroundColor: '#ffffff',
+        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
         zIndex: 5,
       }}
-      theme="light"
+      theme={theme}
     >
       <div className="h-full flex flex-col">
         {!sidebarCollapsed && appTitle}

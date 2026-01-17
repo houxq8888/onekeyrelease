@@ -13,11 +13,13 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
+import { useAppStore } from '../store/appStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Dashboard: React.FC = () => {
+  const { theme } = useAppStore();
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [registerForm] = Form.useForm();
   const queryClient = useQueryClient();
@@ -99,8 +101,8 @@ const Dashboard: React.FC = () => {
         try {
           const statusResponse = await apiClient.mobile.devices.status(device.deviceId);
           if (statusResponse.data) {
-            activeTasks += statusResponse.data.activeTasks || 0;
-            completedTasks += statusResponse.data.completedTasks || 0;
+            activeTasks += statusResponse.data.data?.activeTasks || 0;
+            completedTasks += statusResponse.data.data?.completedTasks || 0;
           }
         } catch (error) {
           console.error(`获取设备 ${device.deviceId} 状态失败:`, error);
@@ -147,7 +149,7 @@ const Dashboard: React.FC = () => {
       {/* 统计卡片 */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="总任务数"
               value={stats.total}
@@ -157,7 +159,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="进行中"
               value={stats.running}
@@ -167,7 +169,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="已完成"
               value={stats.completed}
@@ -177,7 +179,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="失败"
               value={stats.failed}
@@ -189,7 +191,7 @@ const Dashboard: React.FC = () => {
         
         {/* 移动端统计卡片 */}
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="连接设备"
               value={mobileStatsInfo.totalDevices}
@@ -205,7 +207,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card>
+          <Card className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <Statistic
               title="移动端任务"
               value={mobileStatsInfo.activeTasks + mobileStatsInfo.completedTasks}
@@ -224,7 +226,7 @@ const Dashboard: React.FC = () => {
       {/* 进度和最近任务 */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={8}>
-          <Card title="任务完成率">
+          <Card title="任务完成率" className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <div className="text-center">
               <Progress
                 type="circle"
@@ -244,7 +246,7 @@ const Dashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} lg={8}>
-          <Card title="最近任务">
+          <Card title="最近任务" className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
             <List
               dataSource={recentTasks || []}
               renderItem={(task: any) => (
@@ -298,6 +300,7 @@ const Dashboard: React.FC = () => {
                 </Button>
               </div>
             }
+            className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}
           >
             {mobileDevices.length === 0 ? (
               <div className="text-center py-8">
@@ -340,7 +343,7 @@ const Dashboard: React.FC = () => {
                       title={
                         <div className="flex justify-between items-center">
                           <Text strong>{device.deviceName}</Text>
-                          <Tag color={device.isOnline ? 'green' : 'default'} size="small">
+                          <Tag color={device.isOnline ? 'green' : 'default'}>
                             {device.isOnline ? '在线' : '离线'}
                           </Tag>
                         </div>
@@ -368,12 +371,12 @@ const Dashboard: React.FC = () => {
       </Row>
 
       {/* 快速操作 */}
-      <Card title="快速操作">
+      <Card title="快速操作" className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : ''}>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={6}>
             <Card 
               hoverable 
-              className="text-center cursor-pointer"
+              className={`text-center cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : ''}`}
               onClick={() => window.location.href = '/content'}
             >
               <Title level={4}>🎨 生成内容</Title>
@@ -383,7 +386,7 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={6}>
             <Card 
               hoverable 
-              className="text-center cursor-pointer"
+              className={`text-center cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : ''}`}
               onClick={() => window.location.href = '/tasks'}
             >
               <Title level={4}>🚀 创建任务</Title>
@@ -393,7 +396,7 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={6}>
             <Card 
               hoverable 
-              className="text-center cursor-pointer"
+              className={`text-center cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : ''}`}
               onClick={() => window.location.href = '/accounts'}
             >
               <Title level={4}>👤 管理账号</Title>
@@ -403,7 +406,7 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={6}>
             <Card 
               hoverable 
-              className="text-center cursor-pointer"
+              className={`text-center cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : ''}`}
               onClick={() => {
                 // 打开移动端指令发送对话框
                 if (mobileStatsInfo.onlineDevices > 0) {
@@ -419,7 +422,7 @@ const Dashboard: React.FC = () => {
               <Text type="secondary">向手机发送生成指令</Text>
               {mobileStatsInfo.onlineDevices > 0 && (
                 <div className="mt-2">
-                  <Tag color="green" size="small">
+                  <Tag color="green">
                     {mobileStatsInfo.onlineDevices} 设备在线
                   </Tag>
                 </div>

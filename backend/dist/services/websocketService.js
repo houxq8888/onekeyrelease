@@ -1,5 +1,6 @@
-import ws from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { logger } from '../utils/logger';
+import { PairingService } from './pairingService.js';
 /**
  * WebSocket服务类
  * 管理设备连接和实时消息推送
@@ -11,7 +12,7 @@ export class WebSocketService {
      * 初始化WebSocket服务器
      */
     static initialize(server) {
-        this.wss = new ws.Server({
+        this.wss = new WebSocketServer({
             server,
             path: '/ws/mobile'
         });
@@ -55,10 +56,16 @@ export class WebSocketService {
             logger.error(`WebSocket错误: ${deviceId}`, { error: error.message });
             this.handleDisconnection(deviceId, 1006, error.message);
         });
+        // 处理配对连接
+        PairingService.handleWebSocketConnection(deviceId);
         // 发送连接成功消息
         this.sendToDevice(deviceId, {
             type: 'device_connected',
-            data: { message: '连接成功' },
+            data: {
+                message: '连接成功',
+                serverTime: new Date().toISOString(),
+                connectionId: this.generateConnectionId()
+            },
             timestamp: Date.now()
         });
         logger.info(`设备连接成功: ${deviceId}`);
@@ -88,6 +95,12 @@ export class WebSocketService {
                     break;
                 case 'task_status_request':
                     this.handleTaskStatusRequest(deviceId, parsedMessage.data);
+                    break;
+                case 'device_info_request':
+                    this.handleDeviceInfoRequest(deviceId, parsedMessage.data);
+                    break;
+                case 'pairing_status':
+                    this.handlePairingStatusRequest(deviceId, parsedMessage.data);
                     break;
                 default:
                     logger.warn(`未知的WebSocket消息类型: ${parsedMessage.type}`, { deviceId });
@@ -122,6 +135,62 @@ export class WebSocketService {
                 taskId: data.taskId,
                 status: 'completed',
                 progress: 100
+            },
+            timestamp: Date.now()
+        });
+    }
+    /**
+     * 处理设备信息请求
+     */
+    static handleDeviceInfoRequest(deviceId, _data) {
+        // 返回设备连接信息
+        const connection = this.connections.get(deviceId);
+        if (!connection) {
+            this.sendToDevice(deviceId, {
+                type: 'device_info_response',
+                data: {
+                    error: '设备未连接'
+                },
+                timestamp: Date.now()
+            });
+            return;
+        }
+        this.sendToDevice(deviceId, {
+            type: 'device_info_response',
+            data: {
+                deviceId,
+                connectedAt: connection.connectedAt.toISOString(),
+                lastPing: connection.lastPing.toISOString(),
+                connectionId: this.generateConnectionId()
+            },
+            timestamp: Date.now()
+        });
+    }
+    /**
+     * 处理配对状态请求
+     */
+    static handlePairingStatusRequest(deviceId, _data) {
+        // 查找相关的配对会话
+        const activeSessions = PairingService.getActiveSessions();
+        const session = activeSessions.find(s => s.pairedDevice?.deviceId === deviceId);
+        if (!session) {
+            this.sendToDevice(deviceId, {
+                type: 'pairing_status',
+                data: {
+                    status: 'not_paired',
+                    message: '设备未配对'
+                },
+                timestamp: Date.now()
+            });
+            return;
+        }
+        this.sendToDevice(deviceId, {
+            type: 'pairing_status',
+            data: {
+                status: session.status,
+                sessionId: session.sessionId,
+                pairedAt: session.pairedDevice?.pairedAt.toISOString(),
+                message: `配对状态: ${session.status}`
             },
             timestamp: Date.now()
         });
@@ -228,5 +297,51 @@ export class WebSocketService {
                 logger.info(`清理空闲连接: ${deviceId}`);
             }
         });
+    }
+    /**
+     * 生成连接ID
+     */
+    static generateConnectionId() {
+        return `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    /**
+     * 发送配对完成消息
+     */
+    static async sendPairingComplete(deviceId, sessionId) {
+        return this.sendToDevice(deviceId, {
+            type: 'pairing_complete',
+            data: {
+                sessionId,
+                message: '配对完成',
+                completedAt: new Date().toISOString()
+            },
+            timestamp: Date.now()
+        });
+    }
+    /**
+     * 获取设备连接信息
+     */
+    static getDeviceConnectionInfo(deviceId) {
+        const connection = this.connections.get(deviceId);
+        if (!connection || connection.socket.readyState !== WebSocket.OPEN) {
+            return { isConnected: false };
+        }
+        return {
+            isConnected: true,
+            connectedAt: connection.connectedAt.toISOString(),
+            lastPing: connection.lastPing.toISOString(),
+            connectionId: this.generateConnectionId()
+        };
+    }
+    /**
+     * 定期清理过期会话
+     */
+    static startSessionCleanup() {
+        // 每5分钟清理一次过期会话
+        setInterval(() => {
+            PairingService.cleanupExpiredSessions();
+            this.cleanupIdleConnections();
+        }, 5 * 60 * 1000);
+        logger.info('会话清理任务已启动');
     }
 }

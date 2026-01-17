@@ -33,23 +33,80 @@ const Tasks: React.FC = () => {
   const queryClient = useQueryClient();
 
   // 获取任务列表
-  const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
-    const response = await apiClient.tasks.list();
-    return Array.isArray(response.data) ? response.data : [];
+  const { data: tasks = [], isLoading, refetch } = useQuery<Task[]>('tasks', async () => {
+    try {
+      console.log('Tasks组件 - 开始获取任务列表');
+      const response = await apiClient.tasks.list();
+      console.log('Tasks组件 - 获取任务列表成功，原始响应:', response);
+      if (response && response.success && response.data) {
+        // 转换数据格式，将_id转换为id
+        const tasksData = Array.isArray(response.data) ? response.data : [];
+        const transformedTasks = tasksData.map((task: any) => ({
+          ...task,
+          id: task._id || task.id,
+          status: task.status || 'pending',
+          type: task.type || 'content_generation',
+        }));
+        console.log('Tasks组件 - 转换后的任务列表:', transformedTasks);
+        return transformedTasks;
+      }
+      console.warn('Tasks组件 - 响应格式不正确:', response);
+      return [];
+    } catch (error) {
+      console.error('Tasks组件 - 获取任务列表失败:', error);
+      return [];
+    }
+  }, {
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 
+  console.log('Tasks组件 - 当前任务列表:', tasks);
+
   // 创建任务
-  const createMutation = useMutation(apiClient.tasks.create, {
-    onSuccess: () => {
+  const createMutation = useMutation(async (values: any) => {
+    console.log('Tasks组件 - 开始创建任务，表单值:', values);
+    try {
+      // 构建任务数据（符合ITaskInput格式）
+      const taskData = {
+        title: values.title,
+        description: values.description,
+        type: values.type || 'content_generation',
+        config: {
+          contentConfig: {
+            theme: values.title, // 使用标题作为主题
+            keywords: [],
+            targetAudience: 'general',
+            style: 'casual',
+            wordCount: 500,
+          },
+        },
+      };
+      console.log('Tasks组件 - 构建的任务数据:', taskData);
+      const response = await apiClient.tasks.create(taskData);
+      console.log('Tasks组件 - 任务创建成功，响应:', response);
+      return response;
+    } catch (error) {
+      console.error('Tasks组件 - 任务创建失败，错误:', error);
+      throw error;
+    }
+  }, {
+    onSuccess: (response) => {
+      console.log('Tasks组件 - 任务创建成功，响应:', response);
       message.success('任务创建成功');
       setIsModalVisible(false);
       form.resetFields();
-      queryClient.invalidateQueries('tasks');
+      // 立即重新获取任务列表
+      refetch();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '创建任务失败');
+      console.error('Tasks组件 - 任务创建失败，错误:', error);
+      message.error(error.response?.data?.error || error.message || '创建任务失败');
     },
   });
+
+  console.log('Tasks组件 - 表单值:', form.getFieldsValue());
+  console.log('Tasks组件 - 创建任务loading:', createMutation.isLoading);
 
   // 启动任务
   const startMutation = useMutation(

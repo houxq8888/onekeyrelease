@@ -15,6 +15,7 @@ import apiRoutes from './api/index.js';
 import { AuthService } from './services/authService.js';
 import { MobileService } from './services/mobileService.js';
 import { WebSocketService } from './services/websocketService.js';
+import { initPresetTemplates } from './services/templateSeed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +33,7 @@ app.use(compression());
 
 // CORS配置
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
   credentials: true,
 }));
 
@@ -90,7 +91,7 @@ app.get('/mobile/connect', (req, res) => {
     }
     
     // 重定向到连接页面，但保留参数
-    res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
+    return res.redirect(`/mobile/connect.html?deviceId=${deviceId}`);
 });
 
 // API路由
@@ -114,6 +115,13 @@ async function startServer() {
     try {
       await connectDB();
       logger.info('✅ MongoDB connected successfully');
+      
+      // 初始化预设模板
+      try {
+        await initPresetTemplates();
+      } catch (error) {
+        logger.warn('⚠️ Preset templates initialization failed');
+      }
     } catch (error) {
       logger.warn('⚠️ MongoDB connection failed, running in demo mode');
     }
@@ -124,6 +132,7 @@ async function startServer() {
       logger.info('✅ Redis connected successfully');
     } catch (error) {
       logger.warn('⚠️ Redis connection failed, running without cache');
+      logger.debug('Redis connection error details:', error);
     }
 
     // 创建默认管理员账号（开发环境）
@@ -135,27 +144,36 @@ async function startServer() {
       }
     }
 
-    // 初始化移动端服务
+    // 初始化移动端服务（可选，开发环境可以跳过）
     try {
       await MobileService.initialize();
       logger.info('✅ Mobile service initialized successfully');
     } catch (error) {
-      logger.warn('⚠️ Mobile service initialization failed');
+      logger.warn('⚠️ Mobile service initialization failed, some features may not work');
+      logger.debug('Mobile service error details:', error);
     }
 
     // 创建HTTP服务器
     const server = createServer(app);
 
-    // 初始化WebSocket服务
-    WebSocketService.initialize(server);
+    // 初始化WebSocket服务（可选，开发环境可以跳过）
+    try {
+      WebSocketService.initialize(server);
+      WebSocketService.startSessionCleanup();
+      logger.info('✅ WebSocket service initialized successfully');
+    } catch (error) {
+      logger.warn('⚠️ WebSocket service initialization failed, real-time features disabled');
+      logger.debug('WebSocket error details:', error);
+    }
 
     server.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5174'}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔗 WebSocket URL: ws://localhost:${PORT}/ws/mobile`);
       logger.info('💡 Note: Some features may be limited without database connection');
+      logger.info('🔄 Session cleanup task started');
     });
   } catch (error) {
     logger.error('❌ Failed to start server:', error);
