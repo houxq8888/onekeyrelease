@@ -9,23 +9,25 @@ import {
 } from '@ant-design/icons';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
+import { useLocaleStore } from '../../store/localeStore';
 
 const { Header } = Layout;
 
 const AppHeader: React.FC = () => {
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, theme } = useAppStore();
   const { logout, user } = useAuthStore();
+  const { t } = useLocaleStore();
 
   const userMenuItems = [
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: '个人资料',
+      label: t('user.profile'),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: '设置',
+      label: t('menu.settings'),
     },
     {
       key: 'divider',
@@ -34,7 +36,7 @@ const AppHeader: React.FC = () => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: t('user.logout'),
       danger: true,
     },
   ];
@@ -57,19 +59,19 @@ const AppHeader: React.FC = () => {
   };
 
   return (
-    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
+    <Header style={{ backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
       <div className="flex items-center">
         <Button
           type="text"
           icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={toggleSidebar}
-          className="text-gray-600"
+          className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
         />
       </div>
 
       <div className="flex items-center space-x-4">
         <Space>
-          <span className="text-gray-600">欢迎使用</span>
+          <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>{t('app.welcome')}</span>
           <Dropdown
             menu={{ 
               items: userMenuItems, 
@@ -83,7 +85,7 @@ const AppHeader: React.FC = () => {
                 icon={<UserOutlined />} 
                 className="bg-primary-500 mr-2"
               />
-              <span className="text-gray-700">{user?.username || '管理员'}</span>
+              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>{user?.username || t('user.admin')}</span>
             </Button>
           </Dropdown>
         </Space>
