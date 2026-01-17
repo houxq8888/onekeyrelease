@@ -1,6 +1,6 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { logger } from '../utils/logger';
-import { PairingService } from './pairingService';
+import { PairingService } from './pairingService.js';
 /**
  * WebSocket服务类
  * 管理设备连接和实时消息推送

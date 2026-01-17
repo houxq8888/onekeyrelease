@@ -4,10 +4,11 @@ import { persist } from 'zustand/middleware';
 interface AppState {
   sidebarCollapsed: boolean;
   theme: 'light' | 'dark';
+  language: 'zh-CN' | 'en-US' | 'zh-TW';
   currentPage: string;
   toggleSidebar: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
-  setCurrentPage: (page: string) => void;
+  setLanguage: (language: 'zh-CN' | 'en-US' | 'zh-TW') => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -15,6 +16,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       sidebarCollapsed: false,
       theme: 'light',
+      language: 'zh-CN',
       currentPage: '/',
       
       toggleSidebar: () => set((state) => ({ 
@@ -23,13 +25,16 @@ export const useAppStore = create<AppState>()(
       
       setTheme: (theme) => set({ theme }),
       
-      setCurrentPage: (page) => set({ currentPage: page }),
+      setLanguage: (language) => set({ language }),
+      
+
     }),
     {
       name: 'app-storage',
       partialize: (state) => ({ 
         sidebarCollapsed: state.sidebarCollapsed,
-        theme: state.theme 
+        theme: state.theme,
+        language: state.language
       }),
     }
   )

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import taskRoutes from './routes/tasks';
-import contentRoutes from './routes/content';
-import accountRoutes from './routes/accounts';
-import authRoutes from './routes/auth';
-import templateRoutes from './routes/templates';
-import mobileRoutes from './mobile';
-import { asyncHandler } from '../middleware/errorHandler';
+import taskRoutes from './routes/tasks.js';
+import contentRoutes from './routes/content.js';
+import accountRoutes from './routes/accounts.js';
+import authRoutes from './routes/auth.js';
+import templateRoutes from './routes/templates.js';
+import mobileRoutes from './mobile.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
 const router = Router();
 // 各功能模块路由
 router.use('/tasks', taskRoutes);

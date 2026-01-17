@@ -1,33 +1,38 @@
 import express from 'express';
 import { TaskService } from '../../services/taskService';
-import { authMiddleware } from '../../middleware/auth';
+import { demoAuthMiddleware } from '../../middleware/auth';
 
 const router = express.Router();
 
 // 获取任务列表
-router.get('/', authMiddleware, async (req, res, _next) => {
+router.get('/', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
-    const { page = 1, limit = 10, status } = req.query;
+    const { status } = req.query;
     
-    const result = await TaskService.getUserTasks(
-      userId,
-      parseInt(page as string),
-      parseInt(limit as string),
-      status as string
-    );
+    console.log('📥 收到任务列表请求:', { userId, status });
+    
+    let tasks = await TaskService.getTasks(userId);
+    
+    console.log('📊 获取到任务数量:', { count: tasks.length, tasks });
+    
+    // 按状态过滤
+    if (status) {
+      tasks = tasks.filter(task => task.status === status);
+    }
     
     res.json({
       success: true,
-      data: result,
+      data: tasks,
     });
   } catch (error) {
+    console.error('❌ 获取任务列表失败:', error);
     return _next(error);
   }
 });
 
 // 获取任务详情
-router.get('/:id', authMiddleware, async (req, res, _next) => {
+router.get('/:id', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     const taskId = req.params.id;
@@ -44,15 +49,16 @@ router.get('/:id', authMiddleware, async (req, res, _next) => {
 });
 
 // 创建任务
-router.post('/', authMiddleware, async (req, res, _next) => {
+router.post('/', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
-    const taskData = {
-      ...req.body,
-      createdBy: userId,
-    };
+    const taskData = req.body;
     
-    const task = await TaskService.createTask(taskData);
+    console.log('📋 收到任务创建请求:', { userId, taskData });
+    
+    const task = await TaskService.createTask(userId, taskData);
+    
+    console.log('✅ 任务创建成功:', { taskId: task._id });
     
     res.status(201).json({
       success: true,
@@ -60,12 +66,13 @@ router.post('/', authMiddleware, async (req, res, _next) => {
       message: '任务创建成功',
     });
   } catch (error) {
+    console.error('❌ 任务创建失败:', error);
     return _next(error);
   }
 });
 
 // 启动任务
-router.post('/:id/start', authMiddleware, async (req, res, _next) => {
+router.post('/:id/start', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     const taskId = req.params.id;
@@ -83,7 +90,7 @@ router.post('/:id/start', authMiddleware, async (req, res, _next) => {
 });
 
 // 更新任务进度
-router.patch('/:id/progress', authMiddleware, async (req, res, _next) => {
+router.patch('/:id/progress', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     const taskId = req.params.id;
@@ -102,7 +109,7 @@ router.patch('/:id/progress', authMiddleware, async (req, res, _next) => {
 });
 
 // 更新任务结果
-router.patch('/:id/result', authMiddleware, async (req, res, _next) => {
+router.patch('/:id/result', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     const taskId = req.params.id;
@@ -121,7 +128,7 @@ router.patch('/:id/result', authMiddleware, async (req, res, _next) => {
 });
 
 // 删除任务
-router.delete('/:id', authMiddleware, async (req, res, _next) => {
+router.delete('/:id', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     const taskId = req.params.id;
@@ -138,7 +145,7 @@ router.delete('/:id', authMiddleware, async (req, res, _next) => {
 });
 
 // 获取任务统计
-router.get('/stats/summary', authMiddleware, async (req, res, _next) => {
+router.get('/stats/summary', demoAuthMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
     

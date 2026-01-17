@@ -2,6 +2,7 @@
   "name": "onekeyrelease-backend",
   "version": "1.0.0",
   "description": "小红书自动化发布工具后端服务",
+
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",

@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
-import { QRCodeService } from './qrCodeService';
-import { MobileService } from './mobileService';
+import { QRCodeService } from './qrCodeService.js';
+import { MobileService } from './mobileService.js';
 /**
  * 配对状态
  */

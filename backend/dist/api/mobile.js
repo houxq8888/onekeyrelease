@@ -168,11 +168,11 @@ router.post('/qrcode', async (req, res, next) => {
         switch (type) {
             case 'pairing':
                 qrCode = await QRCodeService.generatePairingQRCode(deviceId, serverUrl);
-                data = QRCodeService.parseQRCodeData(qrCode);
+                data = QRCodeService.generatePairingQRCode(deviceId, serverUrl);
                 break;
             case 'connection':
                 qrCode = await QRCodeService.generateConnectionQRCode(deviceId, serverUrl);
-                data = QRCodeService.parseQRCodeData(qrCode);
+                data = QRCodeService.generateConnectionQRCode(deviceId, serverUrl);
                 break;
             default:
                 throw new AppError(`不支持的二维码类型: ${type}`, 400);

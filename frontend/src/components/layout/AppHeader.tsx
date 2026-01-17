@@ -56,8 +56,10 @@ const AppHeader: React.FC = () => {
     }
   };
 
+  const { theme } = useAppStore();
+
   return (
-    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
+    <Header className="dark:bg-gray-900 dark:border-gray-700" style={{ backgroundColor: theme === 'dark' ? '#111827' : '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e8e8e8'}`, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
       <div className="flex items-center">
         <Button
           type="text"
@@ -69,7 +71,7 @@ const AppHeader: React.FC = () => {
 
       <div className="flex items-center space-x-4">
         <Space>
-          <span className="text-gray-600">欢迎使用</span>
+          <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>欢迎使用</span>
           <Dropdown
             menu={{ 
               items: userMenuItems, 
@@ -81,9 +83,9 @@ const AppHeader: React.FC = () => {
               <Avatar 
                 size="small" 
                 icon={<UserOutlined />} 
-                className="bg-primary-500 mr-2"
+                className={theme === 'dark' ? 'bg-gray-600 mr-2' : 'bg-primary-500 mr-2'}
               />
-              <span className="text-gray-700">{user?.username || '管理员'}</span>
+              <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{user?.username || '管理员'}</span>
             </Button>
           </Dropdown>
         </Space>

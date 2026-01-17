@@ -88,3 +88,46 @@ export const optionalAuthMiddleware = async (
     next(error);
   }
 };
+
+/**
+ * 演示认证中间件（用于演示版本，自动设置演示用户）
+ */
+export const demoAuthMiddleware = async (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.header('Authorization');
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      
+      try {
+        const user = await AuthService.verifyToken(token);
+        req.user = user;
+      } catch (error) {
+        console.warn('演示认证中间件：token验证失败，使用默认演示用户', error);
+        // token无效，使用演示用户
+        req.user = {
+          _id: 'demo-user-id',
+          username: '演示用户',
+          email: 'demo@example.com',
+          role: 'admin'
+        };
+      }
+    } else {
+      // 没有token，使用演示用户
+      req.user = {
+        _id: 'demo-user-id',
+        username: '演示用户',
+        email: 'demo@example.com',
+        role: 'admin'
+      };
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

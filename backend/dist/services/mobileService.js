@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
-import { ContentService } from './contentService';
-import { WebSocketService } from './websocketService';
+import { ContentService } from './contentService.js';
+import { WebSocketService } from './websocketService.js';
 import Device from '../models/Device.js';
 import { isMongoDBConnected } from '../config/database.js';
 import { FileStorage } from '../utils/fileStorage.js';

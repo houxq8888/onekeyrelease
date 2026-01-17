@@ -2,13 +2,14 @@ import React from 'react';
 import { Card, Form, Input, Button, Switch, Select, Divider, Typography, message } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useForm } from 'antd/es/form/Form';
+import { useAppStore } from '../store/appStore';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 interface SettingsForm {
   theme: 'light' | 'dark';
-  language: 'zh-CN' | 'en-US';
+  language: 'zh-CN' | 'en-US' | 'zh-TW';
   notifications: {
     email: boolean;
     push: boolean;
@@ -28,6 +29,7 @@ interface SettingsForm {
 }
 
 const Settings: React.FC = () => {
+  const { setTheme, setLanguage, theme, language } = useAppStore();
   const [form] = useForm<SettingsForm>();
   const [loading, setLoading] = React.useState(false);
 
@@ -37,8 +39,8 @@ const Settings: React.FC = () => {
       try {
         // 这里应该从API获取设置
         const mockSettings: SettingsForm = {
-          theme: 'light',
-          language: 'zh-CN',
+          theme: theme || 'light',
+          language: language || 'zh-CN',
           notifications: {
             email: true,
             push: false,
@@ -69,10 +71,18 @@ const Settings: React.FC = () => {
     setLoading(true);
     try {
       // 这里应该调用API保存设置
-      console.log('保存设置:', values);
+      console.log('Settings组件 - 保存设置:', values);
       await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+      
+      // 更新主题和语言
+      console.log('Settings组件 - 更新主题:', values.theme);
+      setTheme(values.theme);
+      console.log('Settings组件 - 更新语言:', values.language);
+      setLanguage(values.language);
+      
       message.success('设置保存成功');
     } catch (error) {
+      console.error('Settings组件 - 保存设置失败:', error);
       message.error('保存设置失败');
     } finally {
       setLoading(false);
@@ -106,6 +116,7 @@ const Settings: React.FC = () => {
           <Form.Item label="语言" name="language">
             <Select>
               <Option value="zh-CN">简体中文</Option>
+              <Option value="zh-TW">繁體中文</Option>
               <Option value="en-US">English</Option>
             </Select>
           </Form.Item>

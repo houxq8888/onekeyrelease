@@ -33,7 +33,7 @@ app.use(compression());
 
 // CORS配置
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
   credentials: true,
 }));
 
@@ -132,6 +132,7 @@ async function startServer() {
       logger.info('✅ Redis connected successfully');
     } catch (error) {
       logger.warn('⚠️ Redis connection failed, running without cache');
+      logger.debug('Redis connection error details:', error);
     }
 
     // 创建默认管理员账号（开发环境）
@@ -143,27 +144,32 @@ async function startServer() {
       }
     }
 
-    // 初始化移动端服务
+    // 初始化移动端服务（可选，开发环境可以跳过）
     try {
       await MobileService.initialize();
       logger.info('✅ Mobile service initialized successfully');
     } catch (error) {
-      logger.warn('⚠️ Mobile service initialization failed');
+      logger.warn('⚠️ Mobile service initialization failed, some features may not work');
+      logger.debug('Mobile service error details:', error);
     }
 
     // 创建HTTP服务器
     const server = createServer(app);
 
-    // 初始化WebSocket服务
-    WebSocketService.initialize(server);
-
-    // 启动会话清理任务
-    WebSocketService.startSessionCleanup();
+    // 初始化WebSocket服务（可选，开发环境可以跳过）
+    try {
+      WebSocketService.initialize(server);
+      WebSocketService.startSessionCleanup();
+      logger.info('✅ WebSocket service initialized successfully');
+    } catch (error) {
+      logger.warn('⚠️ WebSocket service initialization failed, real-time features disabled');
+      logger.debug('WebSocket error details:', error);
+    }
 
     server.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5174'}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔗 WebSocket URL: ws://localhost:${PORT}/ws/mobile`);
       logger.info('💡 Note: Some features may be limited without database connection');
