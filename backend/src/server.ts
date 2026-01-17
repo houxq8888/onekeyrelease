@@ -33,7 +33,7 @@ app.use(compression());
 
 // CORS配置
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5175',
   credentials: true,
 }));
 
@@ -163,7 +163,7 @@ async function startServer() {
     server.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      logger.info(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5175'}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔗 WebSocket URL: ws://localhost:${PORT}/ws/mobile`);
       logger.info('💡 Note: Some features may be limited without database connection');

@@ -8,10 +8,10 @@ import {
   Form, 
   Input, 
   Select, 
-  DatePicker, 
-  message,
+  DatePicker,
   Card,
-  Typography 
+  Typography,
+  message
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -32,21 +32,26 @@ const Tasks: React.FC = () => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
 
+  console.log('Tasks组件 - 获取任务列表');
+
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
+    console.log('任务列表API响应:', response.data);
     return Array.isArray(response.data) ? response.data : [];
   });
 
   // 创建任务
   const createMutation = useMutation(apiClient.tasks.create, {
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      console.log('任务创建成功:', response);
       message.success('任务创建成功');
       setIsModalVisible(false);
       form.resetFields();
       queryClient.invalidateQueries('tasks');
     },
     onError: (error: any) => {
+      console.error('创建任务失败:', error);
       message.error(error.response?.data?.error || '创建任务失败');
     },
   });
@@ -293,7 +298,8 @@ const Tasks: React.FC = () => {
         </Form>
       </Modal>
     </div>
-  );
+  </>
+);
 };
 
 export default Tasks;

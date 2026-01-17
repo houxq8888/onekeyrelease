@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, Form, Input, Button, Switch, Select, Divider, Typography, message } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useForm } from 'antd/es/form/Form';
+import { useAppStore } from '../store/appStore';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 interface SettingsForm {
   theme: 'light' | 'dark';
-  language: 'zh-CN' | 'en-US';
+  language: 'zh-CN' | 'zh-TW' | 'en-US';
   notifications: {
     email: boolean;
     push: boolean;
@@ -30,6 +31,17 @@ interface SettingsForm {
 const Settings: React.FC = () => {
   const [form] = useForm<SettingsForm>();
   const [loading, setLoading] = React.useState(false);
+  const { theme: appTheme, language: appLanguage, setTheme, setLanguage } = useAppStore();
+
+  console.log('Settings组件 - 当前主题:', appTheme, '当前语言:', appLanguage);
+
+  // 从store加载主题和语言设置
+  useEffect(() => {
+    form.setFieldsValue({
+      theme: appTheme,
+      language: appLanguage,
+    });
+  }, [appTheme, appLanguage, form]);
 
   // 模拟加载设置数据
   React.useEffect(() => {
@@ -37,8 +49,8 @@ const Settings: React.FC = () => {
       try {
         // 这里应该从API获取设置
         const mockSettings: SettingsForm = {
-          theme: 'light',
-          language: 'zh-CN',
+          theme: appTheme,
+          language: appLanguage,
           notifications: {
             email: true,
             push: false,
@@ -57,20 +69,29 @@ const Settings: React.FC = () => {
           },
         };
         form.setFieldsValue(mockSettings);
+        console.log('设置已加载:', mockSettings);
       } catch (error) {
         message.error('加载设置失败');
+        console.error('加载设置失败:', error);
       }
     };
 
     loadSettings();
-  }, [form]);
+  }, [form, appTheme, appLanguage]);
 
   const handleSave = async (values: SettingsForm) => {
     setLoading(true);
     try {
       // 这里应该调用API保存设置
       console.log('保存设置:', values);
+      
+      // 更新主题和语言到store
+      console.log('准备切换主题:', values.theme, '语言:', values.language);
+      setTheme(values.theme);
+      setLanguage(values.language);
+      
       await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+      console.log('设置保存成功，主题已切换:', values.theme);
       message.success('设置保存成功');
     } catch (error) {
       message.error('保存设置失败');
@@ -86,7 +107,7 @@ const Settings: React.FC = () => {
 
   return (
     <div className="p-6">
-      <Title level={2}>系统设置</Title>
+        <Title level={2}>系统设置</Title>
       
       <Form
         form={form}
@@ -106,6 +127,7 @@ const Settings: React.FC = () => {
           <Form.Item label="语言" name="language">
             <Select>
               <Option value="zh-CN">简体中文</Option>
+              <Option value="zh-TW">繁體中文</Option>
               <Option value="en-US">English</Option>
             </Select>
           </Form.Item>
@@ -208,7 +230,8 @@ const Settings: React.FC = () => {
         </div>
       </Form>
     </div>
-  );
-};
+  </>
+);
+}
 
 export default Settings;

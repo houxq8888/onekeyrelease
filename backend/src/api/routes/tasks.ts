@@ -8,14 +8,18 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
+    
+    console.log(`获取任务列表 - userId: ${userId}, page: ${page}, limit: ${limit}, sort: ${sort}`);
     
     const result = await TaskService.getUserTasks(
       userId,
       parseInt(page as string),
       parseInt(limit as string),
-      status as string
+      sort as string
     );
+    
+    console.log(`任务列表查询结果 - 总数: ${result.total}, 返回数量: ${result.tasks.length}`);
     
     res.json({
       success: true,
@@ -47,12 +51,15 @@ router.get('/:id', authMiddleware, async (req, res, _next) => {
 router.post('/', authMiddleware, async (req, res, _next) => {
   try {
     const userId = (req as any).user._id;
+    console.log(`创建任务 - userId: ${userId}, 任务数据:`, req.body);
+    
     const taskData = {
       ...req.body,
       createdBy: userId,
     };
     
     const task = await TaskService.createTask(taskData);
+    console.log(`任务创建成功 - taskId: ${task._id}`);
     
     res.status(201).json({
       success: true,
