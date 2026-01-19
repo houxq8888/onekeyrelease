@@ -98,7 +98,7 @@ const Tasks: React.FC = () => {
           style: 'casual',
           wordCount: 500,
         },
-        publishConfig: values.publishTime ? {
+        publishConfig: (values.publishTime && values.publishTime.toDate) ? {
           scheduleTime: values.publishTime.toDate(),
           autoPublish: true,
         } : undefined,

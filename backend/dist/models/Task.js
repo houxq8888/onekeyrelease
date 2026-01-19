@@ -57,8 +57,7 @@ const TaskSchema = new Schema({
         error: String,
     },
     createdBy: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
+        type: Schema.Types.Mixed,
         required: true,
     },
     startedAt: Date,

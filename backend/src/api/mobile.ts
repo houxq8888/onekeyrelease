@@ -212,11 +212,24 @@ router.post('/qrcode', async (req, res, next) => {
     switch (type) {
       case 'pairing':
         qrCode = await QRCodeService.generatePairingQRCode(deviceId, serverUrl);
-        data = QRCodeService.generatePairingData(deviceId, serverUrl);
+        data = {
+          type: 'device_pairing',
+          deviceId,
+          serverUrl,
+          timestamp: Date.now(),
+          version: '1.0.0'
+        };
         break;
       case 'connection':
         qrCode = await QRCodeService.generateConnectionQRCode(deviceId, serverUrl);
-        data = QRCodeService.generateConnectionData(deviceId, serverUrl);
+        const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+        data = {
+          type: 'websocket_connection',
+          deviceId,
+          wsUrl,
+          timestamp: Date.now(),
+          version: '1.0.0'
+        };
         break;
       default:
         throw new AppError(`不支持的二维码类型: ${type}`, 400);

@@ -61,26 +61,114 @@ onekeyrelease/
 ### 环境要求
 - Node.js >= 18.0.0
 - npm >= 9.0.0
+- MongoDB (可选，未连接时自动使用内存数据库)
+- Redis (可选)
 
 ### 安装依赖
+
+#### 安装根目录依赖
 ```bash
 npm install
 ```
 
-### 开发模式
+#### 安装各模块依赖
+```bash
+# 安装后端依赖
+cd backend && npm install && cd ..
+
+# 安装前端依赖
+cd frontend && npm install && cd ..
+
+# 安装移动端依赖（如果需要）
+cd mobile && npm install && cd ..
+```
+
+### 启动项目
+
+#### 方式一：一键启动（推荐）
+
+在项目根目录下执行：
 ```bash
 npm run dev
 ```
 
+这将同时启动后端服务（端口 3000）和前端应用（端口 5173）。
+
+#### 方式二：分别启动
+
+**启动后端服务**：
+```bash
+# 方式1：从根目录启动
+npm run dev:backend
+
+# 方式2：进入后端目录启动
+cd backend
+npm run dev
+```
+
+后端服务将在 `http://localhost:3000` 启动。
+
+**启动前端应用**：
+```bash
+# 方式1：从根目录启动
+npm run dev:frontend
+
+# 方式2：进入前端目录启动
+cd frontend
+npm run dev
+```
+
+前端应用将在 `http://localhost:5173` 启动。
+
+#### 启动移动端应用（可选）
+
+```bash
+cd mobile
+
+# 启动 Metro bundler
+npm start
+
+# 运行 Android 应用
+npm run android
+
+# 运行 iOS 应用（仅 macOS）
+npm run ios
+```
+
 ### 构建项目
+
+#### 构建所有模块
 ```bash
 npm run build
 ```
 
-### 生产环境启动
+#### 分别构建
 ```bash
+# 构建后端
+npm run build:backend
+
+# 构建前端
+npm run build:frontend
+```
+
+### 生产环境部署
+
+```bash
+# 启动生产环境后端服务
 npm start
 ```
+
+### 访问应用
+
+启动成功后，在浏览器中访问：
+- 前端应用：http://localhost:5173
+- 后端API：http://localhost:3000
+- API文档：http://localhost:3000/api
+- 健康检查：http://localhost:3000/health
+
+### 演示模式
+
+如果 MongoDB 未连接，系统会自动切换到内存数据库模式，您可以使用任意用户名和密码登录进行演示。
 
 ## 配置说明
 

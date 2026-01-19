@@ -29,7 +29,12 @@ export class TaskService {
                 return newTask;
             }
             // 正常MongoDB操作
-            const task = new Task(taskData);
+            // 检查是否为演示用户ID
+            const isDemoUser = taskData.createdBy === 'demo-user-id';
+            const task = new Task({
+                ...taskData,
+                createdBy: isDemoUser ? taskData.createdBy : new mongoose.Types.ObjectId(taskData.createdBy),
+            });
             await task.save();
             logger.info(`任务创建成功: ${task._id} - ${task.title}`);
             return task;
