@@ -4,7 +4,7 @@ export interface ITask extends Document {
   title: string;
   description?: string;
   type: 'content_generation' | 'content_publish' | 'batch';
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
   progress: number;
   config: {
     contentConfig?: {
@@ -33,9 +33,22 @@ export interface ITask extends Document {
     publishUrl?: string;
     error?: string;
   };
+  logs?: {
+    timestamp: Date;
+    level: 'info' | 'warning' | 'error' | 'debug';
+    message: string;
+    details?: any;
+  }[];
+  executionContext?: {
+    currentStep?: string;
+    stepProgress?: number;
+    stepData?: any;
+  };
   createdBy: string;
   startedAt?: Date;
   completedAt?: Date;
+  pausedAt?: Date;
+  resumedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,7 +71,7 @@ const TaskSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+      enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'],
       default: 'pending',
     },
     progress: {
@@ -98,6 +111,31 @@ const TaskSchema: Schema = new Schema(
       publishUrl: String,
       error: String,
     },
+    logs: [
+      {
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        level: {
+          type: String,
+          enum: ['info', 'warning', 'error', 'debug'],
+          default: 'info',
+        },
+        message: {
+          type: String,
+          required: true,
+        },
+        details: {
+          type: Schema.Types.Mixed,
+        },
+      },
+    ],
+    executionContext: {
+      currentStep: String,
+      stepProgress: Number,
+      stepData: Schema.Types.Mixed,
+    },
     notificationConfig: {
       enabled: {
         type: Boolean,
@@ -120,6 +158,8 @@ const TaskSchema: Schema = new Schema(
     },
     startedAt: Date,
     completedAt: Date,
+    pausedAt: Date,
+    resumedAt: Date,
   },
   {
     timestamps: true,

@@ -16,7 +16,7 @@ const TaskSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+        enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'],
         default: 'pending',
     },
     progress: {
@@ -56,12 +56,55 @@ const TaskSchema = new Schema({
         publishUrl: String,
         error: String,
     },
+    logs: [
+        {
+            timestamp: {
+                type: Date,
+                default: Date.now,
+            },
+            level: {
+                type: String,
+                enum: ['info', 'warning', 'error', 'debug'],
+                default: 'info',
+            },
+            message: {
+                type: String,
+                required: true,
+            },
+            details: {
+                type: Schema.Types.Mixed,
+            },
+        },
+    ],
+    executionContext: {
+        currentStep: String,
+        stepProgress: Number,
+        stepData: Schema.Types.Mixed,
+    },
+    notificationConfig: {
+        enabled: {
+            type: Boolean,
+            default: false,
+        },
+        emailList: {
+            type: [String],
+            default: [],
+        },
+        remindBeforeDays: {
+            type: Number,
+            default: 1,
+            min: 1,
+            max: 30,
+        },
+    },
     createdBy: {
         type: Schema.Types.Mixed,
         required: true,
     },
     startedAt: Date,
     completedAt: Date,
+    pausedAt: Date,
+    resumedAt: Date,
 }, {
     timestamps: true,
 });

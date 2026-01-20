@@ -24,7 +24,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { Task } from '../types';
-import { useLocaleStore } from '../store/localeStore';
+// import { useLocaleStore } from '../store/localeStore';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -34,16 +34,16 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { t } = useLocaleStore();
+  // const { t } = useLocaleStore();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
-    // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
+    // 后端返回的数据格式是 { success: true, data: { tasks: [...], total: number, page: number, pageSize: number } }
     if (response.data && response.data.tasks) {
       return Array.isArray(response.data.tasks) ? response.data.tasks : [];
     }
-    return Array.isArray(response.data) ? response.data : [];
+    return [];
   });
 
   // 创建任务
@@ -258,7 +258,7 @@ const Tasks: React.FC = () => {
       title: task.title,
       description: task.description,
       type: task.type,
-      publishTime: task.config?.publishConfig?.scheduleTime ? dayjs(task.config.publishConfig.scheduleTime) : null,
+      publishTime: task.publishTime ? dayjs(task.publishTime) : null,
       enableNotification: task.notificationConfig?.enabled || false,
       emailList: task.notificationConfig?.emailList || [],
       remindBeforeDays: task.notificationConfig?.remindBeforeDays || 1,
