@@ -21,6 +21,11 @@ export interface ITask extends Document {
       autoPublish: boolean;
     };
   };
+  notificationConfig?: {
+    enabled: boolean;
+    emailList: string[];
+    remindBeforeDays: number;
+  };
   result?: {
     generatedContent?: string;
     images?: string[];
@@ -92,6 +97,22 @@ const TaskSchema: Schema = new Schema(
       video: String,
       publishUrl: String,
       error: String,
+    },
+    notificationConfig: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+      emailList: {
+        type: [String],
+        default: [],
+      },
+      remindBeforeDays: {
+        type: Number,
+        default: 1,
+        min: 1,
+        max: 30,
+      },
     },
     createdBy: {
       type: Schema.Types.Mixed,

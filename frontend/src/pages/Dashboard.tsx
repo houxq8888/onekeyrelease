@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Progress, List, Typography, Tag, Badge, Button, Modal, Form, Input, Select, message } from 'antd';
 import { 
   PlayCircleOutlined, 
@@ -12,6 +12,7 @@ import {
   PlusOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useLocation } from 'react-router-dom';
 import { apiClient } from '../utils/api';
 
 const { Title, Text } = Typography;
@@ -21,6 +22,15 @@ const Dashboard: React.FC = () => {
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [registerForm] = Form.useForm();
   const queryClient = useQueryClient();
+  const location = useLocation();
+
+  // 当切换到Dashboard页面时，自动刷新数据
+  useEffect(() => {
+    queryClient.invalidateQueries('dashboard-stats');
+    queryClient.invalidateQueries('recent-tasks');
+    queryClient.invalidateQueries('mobile-devices');
+    queryClient.invalidateQueries('mobile-stats');
+  }, [location.pathname, queryClient]);
 
   // 设备注册mutation
   const registerDeviceMutation = useMutation(
@@ -63,7 +73,15 @@ const Dashboard: React.FC = () => {
   // 获取任务统计
   const { data: statsData = [] } = useQuery<any[]>('dashboard-stats', async () => {
     const response = await apiClient.tasks.list();
+    // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
+    if (response.data && response.data.tasks) {
+      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    }
     return Array.isArray(response.data) ? response.data : [];
+  }, {
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // 获取最近任务
@@ -73,7 +91,15 @@ const Dashboard: React.FC = () => {
       pageSize: 5,
       sort: 'createdAt_desc' 
     });
+    // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
+    if (response.data && response.data.tasks) {
+      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    }
     return Array.isArray(response.data) ? response.data : [];
+  }, {
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // 获取移动端设备列表
@@ -250,21 +276,66 @@ const Dashboard: React.FC = () => {
               renderItem={(task: any) => (
                 <List.Item>
                   <List.Item.Meta
-                    title={task.title}
+                    title={
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <code style={{ 
+                            fontSize: '11px', 
+                            padding: '2px 6px', 
+                            background: '#f5f5f5', 
+                            borderRadius: '3px',
+                            color: '#666'
+                          }}>
+                            {task._id || task.id ? (task._id || task.id).substring((task._id || task.id).length - 8) : '-'}
+                          </code>
+                          <span style={{ fontWeight: 500 }}>{task.title}</span>
+                        </div>
+                      </div>
+                    }
                     description={
-                      <div className="flex justify-between items-center">
-                        <Text type="secondary">{task.description}</Text>
-                        <Text 
-                          type={
-                            task.status === 'completed' ? 'success' : 
-                            task.status === 'failed' ? 'danger' : 
-                            task.status === 'running' ? 'warning' : 'secondary'
-                          }
-                        >
-                          {task.status === 'completed' ? '已完成' :
-                           task.status === 'failed' ? '失败' :
-                           task.status === 'running' ? '进行中' : '等待中'}
-                        </Text>
+                      <div>
+                        {task.description && (
+                          <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+                            {task.description}
+                          </Text>
+                        )}
+                        {task.createdBy && task.createdBy.username && (
+                          <div style={{ 
+                            fontSize: '11px',
+                            color: '#1890ff',
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span>👤</span>
+                            <span style={{ fontWeight: 500 }}>
+                              {task.createdBy.username}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <Text 
+                            type={
+                              task.status === 'completed' ? 'success' : 
+                              task.status === 'failed' ? 'danger' : 
+                              task.status === 'running' ? 'warning' : 'secondary'
+                            }
+                            style={{ fontSize: '12px' }}
+                          >
+                            {task.status === 'completed' ? '已完成' :
+                             task.status === 'failed' ? '失败' :
+                             task.status === 'running' ? '进行中' : '等待中'}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: '11px' }}>
+                            {new Date(task.createdAt).toLocaleString('zh-CN', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                        </div>
                       </div>
                     }
                   />

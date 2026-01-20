@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
 import Task, { ITask } from '../models/Task';
+import User, { IUser } from '../models/User';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { memoryStorage, isMongoDBConnected } from '../config/database.js';
+import { EmailService } from './emailService.js';
 
 export class TaskService {
   /**
@@ -42,6 +44,26 @@ export class TaskService {
       await task.save();
       
       logger.info(`任务创建成功: ${task._id} - ${task.title}`);
+      
+      // 如果配置了邮件提醒，发送提醒邮件
+      if (task.notificationConfig && task.notificationConfig.enabled && task.notificationConfig.emailList && task.notificationConfig.emailList.length > 0) {
+        if (task.config.publishConfig && task.config.publishConfig.scheduleTime) {
+          const publishTime = new Date(task.config.publishConfig.scheduleTime);
+          const remindBeforeDays = task.notificationConfig.remindBeforeDays || 1;
+          const remindTime = new Date(publishTime.getTime() - remindBeforeDays * 24 * 60 * 60 * 1000);
+          
+          // 只在提醒时间还没到时才发送
+          if (remindTime > new Date()) {
+            await EmailService.sendTaskReminder(
+              task.title,
+              publishTime,
+              task.notificationConfig.emailList
+            );
+            logger.info(`任务提醒邮件已发送: ${task._id} -> ${task.notificationConfig.emailList.join(', ')}`);
+          }
+        }
+      }
+      
       return task;
     } catch (error: any) {
       logger.error(`任务创建失败: ${error.message}`);
@@ -105,7 +127,8 @@ export class TaskService {
       const tasks = await Task.find(queryCondition)
         .sort(sortObj)
         .skip(skip)
-        .limit(pageSize);
+        .limit(pageSize)
+        .populate('createdBy', 'username');
 
       const total = await Task.countDocuments(queryCondition);
       
@@ -147,7 +170,7 @@ export class TaskService {
       const isDemoUser = userId === 'demo-user-id';
       const queryCondition = isDemoUser ? { _id: taskId, createdBy: userId } : { _id: taskId, createdBy: new mongoose.Types.ObjectId(userId) };
       
-      const task = await Task.findOne(queryCondition);
+      const task = await Task.findOne(queryCondition).populate('createdBy', 'username');
       
       if (!task) {
         throw new AppError('任务不存在', 404);

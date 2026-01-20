@@ -1,6 +1,7 @@
 // 任务相关类型
 export interface Task {
   id: string;
+  _id?: string;
   title: string;
   description: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
@@ -12,6 +13,10 @@ export interface Task {
   updatedAt: string;
   progress?: number;
   errorMessage?: string;
+  createdBy?: {
+    _id: string;
+    username: string;
+  };
 }
 
 // 内容相关类型
