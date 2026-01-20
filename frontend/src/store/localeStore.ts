@@ -23,7 +23,7 @@ export const useLocaleStore = create<LocaleState>()(
       setLanguage: (language) => set({ language }),
       t: (key: string) => {
         const { language: currentLanguage } = get();
-        const locale = locales[currentLanguage];
+        const locale = locales[currentLanguage] as Record<string, string>;
         return locale[key] || key;
       },
     }),

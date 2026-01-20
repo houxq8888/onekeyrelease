@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
+import { ConfigProvider, Layout } from 'antd';
+import AntdApp from 'antd/es/app';
 import zhCN from 'antd/locale/zh_CN';
 import zhTW from 'antd/locale/zh_TW';
 import enUS from 'antd/locale/en_US';
+import { theme } from 'antd';
+const { darkAlgorithm, defaultAlgorithm } = theme;
 import AppHeader from './components/layout/AppHeader';
 import AppSidebar from './components/layout/AppSidebar';
 import Dashboard from './pages/Dashboard';
@@ -32,7 +35,7 @@ const App: React.FC = () => {
   }, [language]);
   
   const antdTheme = {
-    algorithm: theme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    algorithm: theme === 'dark' ? darkAlgorithm : defaultAlgorithm,
   };
 
   // 应用深色模式到 body

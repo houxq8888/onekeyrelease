@@ -6,8 +6,10 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res, _next) => {
     try {
         const userId = req.user._id;
-        const { page = 1, limit = 10, status } = req.query;
-        const result = await TaskService.getUserTasks(userId, parseInt(page), parseInt(limit), status);
+        const { page = 1, limit = 10, pageSize, status, sort } = req.query;
+        // 同时支持limit和pageSize参数，优先使用pageSize（与前端保持一致）
+        const actualPageSize = pageSize || limit;
+        const result = await TaskService.getUserTasks(userId, parseInt(page), parseInt(actualPageSize), sort, status);
         res.json({
             success: true,
             data: result,
@@ -124,6 +126,71 @@ router.get('/stats/summary', authMiddleware, async (req, res, _next) => {
         res.json({
             success: true,
             data: stats,
+        });
+    }
+    catch (error) {
+        return _next(error);
+    }
+});
+// 暂停任务
+router.post('/:id/pause', authMiddleware, async (req, res, _next) => {
+    try {
+        const userId = req.user._id;
+        const taskId = req.params.id;
+        const task = await TaskService.pauseTask(taskId, userId);
+        res.json({
+            success: true,
+            data: task,
+            message: '任务暂停成功',
+        });
+    }
+    catch (error) {
+        return _next(error);
+    }
+});
+// 恢复任务
+router.post('/:id/resume', authMiddleware, async (req, res, _next) => {
+    try {
+        const userId = req.user._id;
+        const taskId = req.params.id;
+        const task = await TaskService.resumeTask(taskId, userId);
+        res.json({
+            success: true,
+            data: task,
+            message: '任务恢复成功',
+        });
+    }
+    catch (error) {
+        return _next(error);
+    }
+});
+// 取消任务
+router.post('/:id/cancel', authMiddleware, async (req, res, _next) => {
+    try {
+        const userId = req.user._id;
+        const taskId = req.params.id;
+        const task = await TaskService.cancelTask(taskId, userId);
+        res.json({
+            success: true,
+            data: task,
+            message: '任务取消成功',
+        });
+    }
+    catch (error) {
+        return _next(error);
+    }
+});
+// 获取任务日志
+router.get('/:id/logs', authMiddleware, async (req, res, _next) => {
+    try {
+        const userId = req.user._id;
+        const taskId = req.params.id;
+        const { limit = 100 } = req.query;
+        const logs = await TaskService.getTaskLogs(taskId, userId, parseInt(limit));
+        res.json({
+            success: true,
+            data: logs,
+            message: '任务日志获取成功',
         });
     }
     catch (error) {

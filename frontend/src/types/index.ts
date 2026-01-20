@@ -4,7 +4,7 @@ export interface Task {
   _id?: string;
   title: string;
   description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
   type: 'content_generation' | 'publish' | 'both';
   accountId: string;
   content?: Content;
@@ -17,6 +17,27 @@ export interface Task {
     _id: string;
     username: string;
   };
+  notificationConfig?: {
+    enabled: boolean;
+    emailList: string[];
+    remindBeforeDays: number;
+  };
+  logs?: {
+    timestamp: string;
+    level: 'info' | 'warning' | 'error' | 'debug';
+    message: string;
+    details?: any;
+  }[];
+  executionContext?: {
+    currentStep?: string;
+    stepProgress?: number;
+    stepData?: any;
+  };
+  completedAt?: string;
+  pausedAt?: string;
+  resumedAt?: string;
+  startedAt?: string;
+  result?: any;
 }
 
 // 内容相关类型
