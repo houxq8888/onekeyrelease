@@ -3,6 +3,7 @@ import Task from '../models/Task';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { memoryStorage, isMongoDBConnected } from '../config/database.js';
+import { EmailService } from './emailService.js';
 export class TaskService {
     /**
      * 创建新任务
@@ -37,6 +38,19 @@ export class TaskService {
             });
             await task.save();
             logger.info(`任务创建成功: ${task._id} - ${task.title}`);
+            // 如果配置了邮件提醒，发送提醒邮件
+            if (task.notificationConfig && task.notificationConfig.enabled && task.notificationConfig.emailList && task.notificationConfig.emailList.length > 0) {
+                if (task.config.publishConfig && task.config.publishConfig.scheduleTime) {
+                    const publishTime = new Date(task.config.publishConfig.scheduleTime);
+                    const remindBeforeDays = task.notificationConfig.remindBeforeDays || 1;
+                    const remindTime = new Date(publishTime.getTime() - remindBeforeDays * 24 * 60 * 60 * 1000);
+                    // 只在提醒时间还没到时才发送
+                    if (remindTime > new Date()) {
+                        await EmailService.sendTaskReminder(task.title, publishTime, task.notificationConfig.emailList);
+                        logger.info(`任务提醒邮件已发送: ${task._id} -> ${task.notificationConfig.emailList.join(', ')}`);
+                    }
+                }
+            }
             return task;
         }
         catch (error) {
@@ -99,7 +113,8 @@ export class TaskService {
             const tasks = await Task.find(queryCondition)
                 .sort(sortObj)
                 .skip(skip)
-                .limit(pageSize);
+                .limit(pageSize)
+                .populate('createdBy', 'username');
             const total = await Task.countDocuments(queryCondition);
             logger.info(`获取用户任务列表成功: ${userId}, 总数: ${total}`);
             return {
@@ -135,7 +150,7 @@ export class TaskService {
             // 正常MongoDB模式 - 检查是否为演示用户
             const isDemoUser = userId === 'demo-user-id';
             const queryCondition = isDemoUser ? { _id: taskId, createdBy: userId } : { _id: taskId, createdBy: new mongoose.Types.ObjectId(userId) };
-            const task = await Task.findOne(queryCondition);
+            const task = await Task.findOne(queryCondition).populate('createdBy', 'username');
             if (!task) {
                 throw new AppError('任务不存在', 404);
             }
@@ -383,6 +398,183 @@ export class TaskService {
             }
             logger.error(`启动任务失败: ${error.message}`);
             throw new AppError(`启动任务失败: ${error.message}`, 500);
+        }
+    }
+    /**
+     * 暂停任务
+     */
+    static async pauseTask(taskId, userId) {
+        try {
+            // 检查是否使用内存数据库模式
+            if (!isMongoDBConnected()) {
+                // 内存数据库模式：暂停任务
+                const task = memoryStorage.findTaskById(taskId);
+                if (!task || task.createdBy !== userId) {
+                    throw new AppError('任务不存在', 404);
+                }
+                if (task.status !== 'running') {
+                    throw new AppError('只有运行中的任务可以暂停', 400);
+                }
+                task.status = 'paused';
+                // 更新内存中的任务
+                memoryStorage.updateTask(taskId, task);
+                logger.info(`任务暂停成功（内存模式）: ${taskId}`);
+                return task;
+            }
+            // 正常MongoDB模式
+            const task = await Task.findOne({ _id: taskId, createdBy: userId });
+            if (!task) {
+                throw new AppError('任务不存在', 404);
+            }
+            if (task.status !== 'running') {
+                throw new AppError('只有运行中的任务可以暂停', 400);
+            }
+            task.status = 'paused';
+            await task.save();
+            logger.info(`任务暂停成功: ${taskId}`);
+            return task;
+        }
+        catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            logger.error(`暂停任务失败: ${error.message}`);
+            throw new AppError(`暂停任务失败: ${error.message}`, 500);
+        }
+    }
+    /**
+     * 恢复任务
+     */
+    static async resumeTask(taskId, userId) {
+        try {
+            // 检查是否使用内存数据库模式
+            if (!isMongoDBConnected()) {
+                // 内存数据库模式：恢复任务
+                const task = memoryStorage.findTaskById(taskId);
+                if (!task || task.createdBy !== userId) {
+                    throw new AppError('任务不存在', 404);
+                }
+                if (task.status !== 'paused') {
+                    throw new AppError('只有已暂停的任务可以恢复', 400);
+                }
+                task.status = 'running';
+                // 更新内存中的任务
+                memoryStorage.updateTask(taskId, task);
+                logger.info(`任务恢复成功（内存模式）: ${taskId}`);
+                return task;
+            }
+            // 正常MongoDB模式
+            const task = await Task.findOne({ _id: taskId, createdBy: userId });
+            if (!task) {
+                throw new AppError('任务不存在', 404);
+            }
+            if (task.status !== 'paused') {
+                throw new AppError('只有已暂停的任务可以恢复', 400);
+            }
+            task.status = 'running';
+            await task.save();
+            logger.info(`任务恢复成功: ${taskId}`);
+            return task;
+        }
+        catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            logger.error(`恢复任务失败: ${error.message}`);
+            throw new AppError(`恢复任务失败: ${error.message}`, 500);
+        }
+    }
+    /**
+     * 取消任务
+     */
+    static async cancelTask(taskId, userId) {
+        try {
+            // 检查是否使用内存数据库模式
+            if (!isMongoDBConnected()) {
+                // 内存数据库模式：取消任务
+                const task = memoryStorage.findTaskById(taskId);
+                if (!task || task.createdBy !== userId) {
+                    throw new AppError('任务不存在', 404);
+                }
+                if (task.status !== 'running' && task.status !== 'paused') {
+                    throw new AppError('只有运行中或已暂停的任务可以取消', 400);
+                }
+                task.status = 'cancelled';
+                task.completedAt = new Date();
+                // 更新内存中的任务
+                memoryStorage.updateTask(taskId, task);
+                logger.info(`任务取消成功（内存模式）: ${taskId}`);
+                return task;
+            }
+            // 正常MongoDB模式
+            const task = await Task.findOne({ _id: taskId, createdBy: userId });
+            if (!task) {
+                throw new AppError('任务不存在', 404);
+            }
+            if (task.status !== 'running' && task.status !== 'paused') {
+                throw new AppError('只有运行中或已暂停的任务可以取消', 400);
+            }
+            task.status = 'cancelled';
+            task.completedAt = new Date();
+            await task.save();
+            logger.info(`任务取消成功: ${taskId}`);
+            return task;
+        }
+        catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            logger.error(`取消任务失败: ${error.message}`);
+            throw new AppError(`取消任务失败: ${error.message}`, 500);
+        }
+    }
+    /**
+     * 添加任务日志
+     */
+    static async addTaskLog(taskId, userId, message, level = 'info', step) {
+        try {
+            // 检查是否使用内存数据库模式
+            if (!isMongoDBConnected()) {
+                // 内存数据库模式：添加日志
+                const task = memoryStorage.findTaskById(taskId);
+                if (!task || task.createdBy !== userId) {
+                    throw new AppError('任务不存在', 404);
+                }
+                if (!task.logs) {
+                    task.logs = [];
+                }
+                task.logs.push({
+                    timestamp: new Date(),
+                    message,
+                    level,
+                    step
+                });
+                // 更新内存中的任务
+                memoryStorage.updateTask(taskId, task);
+                logger.info(`任务日志添加成功（内存模式）: ${taskId}`);
+                return task;
+            }
+            // 正常MongoDB模式
+            const task = await Task.findOne({ _id: taskId, createdBy: userId });
+            if (!task) {
+                throw new AppError('任务不存在', 404);
+            }
+            task.logs.push({
+                timestamp: new Date(),
+                message,
+                level,
+                step
+            });
+            await task.save();
+            logger.info(`任务日志添加成功: ${taskId}`);
+            return task;
+        }
+        catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            logger.error(`添加任务日志失败: ${error.message}`);
+            throw new AppError(`添加任务日志失败: ${error.message}`, 500);
         }
     }
 }

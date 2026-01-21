@@ -4,7 +4,8 @@ export interface ITask extends Document {
   title: string;
   description?: string;
   type: 'content_generation' | 'content_publish' | 'batch';
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
+  logs: Array<{ timestamp: Date; message: string; level: 'info' | 'warn' | 'error' | 'debug'; step?: string }>;
   progress: number;
   config: {
     contentConfig?: {
@@ -58,7 +59,7 @@ const TaskSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+      enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'],
       default: 'pending',
     },
     progress: {
@@ -66,6 +67,27 @@ const TaskSchema: Schema = new Schema(
       default: 0,
       min: 0,
       max: 100,
+    },
+    logs: {
+      type: [{
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        message: {
+          type: String,
+          required: true,
+        },
+        level: {
+          type: String,
+          enum: ['info', 'warn', 'error', 'debug'],
+          default: 'info',
+        },
+        step: {
+          type: String,
+        },
+      }],
+      default: [],
     },
     config: {
       contentConfig: {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp, theme as antdTheme } from 'antd';
+import type { ThemeConfig } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import zhTW from 'antd/locale/zh_TW';
 import enUS from 'antd/locale/en_US';
@@ -31,8 +32,8 @@ const App: React.FC = () => {
     return language === 'zh-CN' ? zhCN : language === 'zh-TW' ? zhTW : enUS;
   }, [language]);
   
-  const antdTheme = {
-    algorithm: theme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+  const antdThemeConfig: ThemeConfig = {
+    algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
   };
 
   // 应用深色模式到 body
@@ -84,7 +85,7 @@ const App: React.FC = () => {
   // 如果正在检查认证状态，显示加载中
   if (isCheckingAuth) {
     return (
-      <ConfigProvider locale={locale} theme={antdTheme}>
+      <ConfigProvider locale={locale} theme={antdThemeConfig}>
         <AntdApp>
           <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
             <div className="text-center">
@@ -101,7 +102,7 @@ const App: React.FC = () => {
   console.log('演示版本，直接进入主界面');
 
   return (
-    <ConfigProvider locale={locale} theme={antdTheme} key={language}>
+    <ConfigProvider locale={locale} theme={antdThemeConfig} key={language}>
         <AntdApp>
           <Layout style={{ minHeight: '100vh', backgroundColor: theme === 'dark' ? '#141414' : '#ffffff' }}>
             <AppHeader />

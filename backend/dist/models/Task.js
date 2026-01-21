@@ -16,7 +16,7 @@ const TaskSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+        enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'],
         default: 'pending',
     },
     progress: {
@@ -24,6 +24,27 @@ const TaskSchema = new Schema({
         default: 0,
         min: 0,
         max: 100,
+    },
+    logs: {
+        type: [{
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                message: {
+                    type: String,
+                    required: true,
+                },
+                level: {
+                    type: String,
+                    enum: ['info', 'warn', 'error', 'debug'],
+                    default: 'info',
+                },
+                step: {
+                    type: String,
+                },
+            }],
+        default: [],
     },
     config: {
         contentConfig: {
@@ -55,6 +76,22 @@ const TaskSchema = new Schema({
         video: String,
         publishUrl: String,
         error: String,
+    },
+    notificationConfig: {
+        enabled: {
+            type: Boolean,
+            default: false,
+        },
+        emailList: {
+            type: [String],
+            default: [],
+        },
+        remindBeforeDays: {
+            type: Number,
+            default: 1,
+            min: 1,
+            max: 30,
+        },
     },
     createdBy: {
         type: Schema.Types.Mixed,

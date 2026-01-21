@@ -36,12 +36,13 @@ export interface DeviceInfo {
 
 export interface TaskStatus {
   taskId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'paused' | 'cancelled';
   progress: number;
   result?: any;
   error?: string;
   createdAt: Date;
   updatedAt: Date;
+  logs?: Array<{ timestamp: Date; message: string; level: 'info' | 'warn' | 'error' | 'debug'; step?: string }>;
 }
 
 /**
@@ -184,6 +185,18 @@ export class MobileService {
   }
 
   /**
+   * 检查任务状态，如果任务被暂停或取消则抛出错误
+   */
+  private static checkTaskStatus(task: TaskStatus): void {
+    if (task.status === 'paused') {
+      throw new AppError('任务已被暂停', 400);
+    }
+    if (task.status === 'cancelled') {
+      throw new AppError('任务已被取消', 400);
+    }
+  }
+
+  /**
    * 异步处理指令
    */
   private static async processCommandAsync(
@@ -204,23 +217,23 @@ export class MobileService {
 
       switch (command) {
         case 'generate_content':
-          result = await this.handleGenerateContent(task, params, platform);
+          result = await this.handleGenerateContent(task, params, platform, deviceId);
           break;
           
         case 'generate_images':
-          result = await this.handleGenerateImages(task, params);
+          result = await this.handleGenerateImages(task, params, deviceId);
           break;
           
         case 'generate_video':
-          result = await this.handleGenerateVideo(task, params);
+          result = await this.handleGenerateVideo(task, params, deviceId);
           break;
           
         case 'publish_content':
-          result = await this.handlePublishContent(task, params, platform);
+          result = await this.handlePublishContent(task, params, platform, deviceId);
           break;
           
         case 'batch_generate':
-          result = await this.handleBatchGenerate(task, params, platform);
+          result = await this.handleBatchGenerate(task, params, platform, deviceId);
           break;
           
         default:
@@ -270,9 +283,14 @@ export class MobileService {
   private static async handleGenerateContent(
     task: TaskStatus, 
     params: any, 
-    _platform: string
+    _platform: string,
+    deviceId: string
   ): Promise<any> {
     task.progress = 10;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     const config = {
       theme: params.theme || '默认主题',
@@ -283,23 +301,40 @@ export class MobileService {
     };
 
     task.progress = 30;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     const content = await ContentService.generateContent(config);
     
     task.progress = 60;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     // 生成图片
     const images = await ContentService.generateImages(config.theme, 3);
     
     task.progress = 80;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     // 生成视频（可选）
     let video = '';
     if (params.generateVideo) {
       video = await ContentService.generateVideo(config.theme);
+      this.checkTaskStatus(task);
     }
     
     task.progress = 100;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     return {
       content,
@@ -312,8 +347,12 @@ export class MobileService {
   /**
    * 处理图片生成指令
    */
-  private static async handleGenerateImages(task: TaskStatus, params: any): Promise<any> {
+  private static async handleGenerateImages(task: TaskStatus, params: any, deviceId: string): Promise<any> {
     task.progress = 50;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     const images = await ContentService.generateImages(
       params.theme, 
@@ -321,6 +360,10 @@ export class MobileService {
     );
     
     task.progress = 100;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     return { images };
   }
@@ -328,12 +371,20 @@ export class MobileService {
   /**
    * 处理视频生成指令
    */
-  private static async handleGenerateVideo(task: TaskStatus, params: any): Promise<any> {
+  private static async handleGenerateVideo(task: TaskStatus, params: any, deviceId: string): Promise<any> {
     task.progress = 50;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     const video = await ContentService.generateVideo(params.theme);
     
     task.progress = 100;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     return { video };
   }
@@ -341,8 +392,12 @@ export class MobileService {
   /**
    * 处理内容发布指令
    */
-  private static async handlePublishContent(task: TaskStatus, params: any, platform: string): Promise<any> {
+  private static async handlePublishContent(task: TaskStatus, params: any, platform: string, deviceId: string): Promise<any> {
     task.progress = 50;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     const result = await ContentService.publishContent(
       params.content || '',
@@ -352,6 +407,10 @@ export class MobileService {
     );
     
     task.progress = 100;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     return result;
   }
@@ -362,7 +421,8 @@ export class MobileService {
   private static async handleBatchGenerate(
     task: TaskStatus, 
     params: any, 
-    _platform: string
+    _platform: string,
+    deviceId: string
   ): Promise<any> {
     const themes = params.themes || [];
     const results = [];
@@ -371,6 +431,10 @@ export class MobileService {
       const theme = themes[i];
       
       task.progress = Math.floor((i / themes.length) * 100);
+      this.checkTaskStatus(task);
+      
+      // 发送进度更新
+      await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
       
       try {
         const content = await ContentService.generateContent({
@@ -380,8 +444,10 @@ export class MobileService {
           style: params.style || 'casual',
           wordCount: params.wordCount || 500
         });
+        this.checkTaskStatus(task);
 
         const images = await ContentService.generateImages(theme, 3);
+        this.checkTaskStatus(task);
         
         results.push({
           theme,
@@ -399,6 +465,10 @@ export class MobileService {
     }
 
     task.progress = 100;
+    this.checkTaskStatus(task);
+    
+    // 发送进度更新
+    await WebSocketService.sendProgressUpdate(deviceId, task.taskId, task.progress);
     
     return { results };
   }
