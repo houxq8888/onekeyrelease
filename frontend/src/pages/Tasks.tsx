@@ -12,19 +12,27 @@ import {
   Checkbox,
   message,
   Card,
-  Typography 
+  Typography,
+  Progress,
+  Descriptions,
+  Timeline
 } from 'antd';
-import dayjs from 'dayjs';
+
 import { 
   PlusOutlined, 
   PlayCircleOutlined, 
-  EditOutlined, 
-  DeleteOutlined 
+  PauseCircleOutlined, 
+  PlaySquareOutlined, 
+  CloseCircleOutlined, 
+  DeleteOutlined,
+  InfoCircleOutlined,
+  SyncOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { Task } from '../types';
-import { useLocaleStore } from '../store/localeStore';
+
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -32,9 +40,11 @@ const { Option } = Select;
 const Tasks: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [isLogsModalVisible, setIsLogsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { t } = useLocaleStore();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
@@ -108,6 +118,50 @@ const Tasks: React.FC = () => {
       },
       onError: (error: any) => {
         message.error(error.response?.data?.error || '删除任务失败');
+      },
+    }
+  );
+
+  // 暂停任务
+  const pauseMutation = useMutation(
+    (id: string) => apiClient.tasks.pause(id),
+    {
+      onSuccess: () => {
+        message.success('任务暂停成功');
+        queryClient.invalidateQueries('tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '暂停任务失败');
+      },
+    }
+  );
+
+  // 恢复任务
+  const resumeMutation = useMutation(
+    (id: string) => apiClient.tasks.resume(id),
+    {
+      onSuccess: () => {
+        message.success('任务恢复成功');
+        queryClient.invalidateQueries('tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '恢复任务失败');
+      },
+    }
+  );
+
+  // 取消任务
+  const cancelMutation = useMutation(
+    (id: string) => apiClient.tasks.cancel(id),
+    {
+      onSuccess: () => {
+        message.success('任务取消成功');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '取消任务失败');
       },
     }
   );
@@ -249,20 +303,38 @@ const Tasks: React.FC = () => {
     });
   };
 
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setIsModalVisible(true);
-    
-    // 设置表单初始值
-    form.setFieldsValue({
-      title: task.title,
-      description: task.description,
-      type: task.type,
-      publishTime: task.config?.publishConfig?.scheduleTime ? dayjs(task.config.publishConfig.scheduleTime) : null,
-      enableNotification: task.notificationConfig?.enabled || false,
-      emailList: task.notificationConfig?.emailList || [],
-      remindBeforeDays: task.notificationConfig?.remindBeforeDays || 1,
+  const handlePauseTask = (id: string) => {
+    Modal.confirm({
+      title: '确认暂停',
+      content: '确定要暂停这个任务吗？',
+      onOk: () => pauseMutation.mutate(id),
     });
+  };
+
+  const handleResumeTask = (id: string) => {
+    Modal.confirm({
+      title: '确认恢复',
+      content: '确定要恢复这个任务吗？',
+      onOk: () => resumeMutation.mutate(id),
+    });
+  };
+
+  const handleCancelTask = (id: string) => {
+    Modal.confirm({
+      title: '确认取消',
+      content: '确定要取消这个任务吗？此操作不可恢复。',
+      onOk: () => cancelMutation.mutate(id),
+    });
+  };
+
+  const handleViewTaskDetails = (task: Task) => {
+    setSelectedTask(task);
+    setIsDetailsModalVisible(true);
+  };
+
+  const handleViewTaskLogs = (task: Task) => {
+    setSelectedTask(task);
+    setIsLogsModalVisible(true);
   };
 
   const columns = [
@@ -306,30 +378,6 @@ const Tasks: React.FC = () => {
       ),
     },
     {
-      title: '创建者',
-      dataIndex: 'createdBy',
-      key: 'createdBy',
-      width: 120,
-      render: (createdBy: any) => {
-        if (!createdBy) return '-';
-        return (
-          <div style={{ 
-            fontSize: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            <span style={{ 
-              color: '#1890ff',
-              fontWeight: 500
-            }}>
-              {createdBy.username || '-'}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
@@ -338,12 +386,37 @@ const Tasks: React.FC = () => {
         const statusConfig = {
           pending: { color: 'default', text: '等待中' },
           running: { color: 'processing', text: '进行中' },
+          paused: { color: 'warning', text: '已暂停' },
           completed: { color: 'success', text: '已完成' },
           failed: { color: 'error', text: '失败' },
+          cancelled: { color: 'error', text: '已取消' },
         };
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
         return <Tag color={config.color}>{config.text}</Tag>;
       },
+    },
+    {
+      title: '进度',
+      dataIndex: 'progress',
+      key: 'progress',
+      width: 150,
+      render: (progress: number) => (
+        <div>
+          <Progress 
+            percent={progress} 
+            size="small" 
+            status={progress === 100 ? 'success' : 'active'}
+          />
+          <div style={{ 
+            fontSize: '12px', 
+            textAlign: 'center', 
+            marginTop: '4px',
+            color: '#666'
+          }}>
+            {progress}%
+          </div>
+        </div>
+      ),
     },
     {
       title: '类型',
@@ -379,36 +452,130 @@ const Tasks: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 300,
       render: (_: any, record: Task) => (
-        <Space size="middle">
+        <Space size="small">
           {record.status === 'pending' && (
+            <>
+              <Button
+                type="link"
+                icon={<PlayCircleOutlined />}
+                onClick={() => handleStartTask(record._id || record.id)}
+                title={`启动任务: ${record.title}`}
+              >
+                启动
+              </Button>
+              <Button
+                type="link"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleCancelTask(record._id || record.id)}
+                title={`取消任务: ${record.title}`}
+              >
+                取消
+              </Button>
+            </>
+          )}
+          {record.status === 'running' && (
+            <>
+              <Button
+                type="link"
+                icon={<PauseCircleOutlined />}
+                onClick={() => handlePauseTask(record._id || record.id)}
+                title={`暂停任务: ${record.title}`}
+              >
+                暂停
+              </Button>
+              <Button
+                type="link"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleCancelTask(record._id || record.id)}
+                title={`取消任务: ${record.title}`}
+              >
+                取消
+              </Button>
+            </>
+          )}
+          {record.status === 'paused' && (
+            <>
+              <Button
+                type="link"
+                icon={<PlaySquareOutlined />}
+                onClick={() => handleResumeTask(record._id || record.id)}
+                title={`恢复任务: ${record.title}`}
+              >
+                恢复
+              </Button>
+              <Button
+                type="link"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleCancelTask(record._id || record.id)}
+                title={`取消任务: ${record.title}`}
+              >
+                取消
+              </Button>
+            </>
+          )}
+          {record.status === 'cancelled' && (
             <Button
               type="link"
               icon={<PlayCircleOutlined />}
               onClick={() => handleStartTask(record._id || record.id)}
-              title={`启动任务: ${record.title}`}
+              title={`重新启动任务: ${record.title}`}
             >
-              启动
+              重新启动
             </Button>
           )}
           <Button
             type="link"
             icon={<EditOutlined />}
-            onClick={() => handleEditTask(record)}
+            onClick={() => {
+              setEditingTask(record);
+              setIsModalVisible(true);
+              // 填充表单数据
+              form.setFieldsValue({
+                title: record.title,
+                description: record.description,
+                type: record.type,
+                publishTime: record.config?.publishConfig?.scheduleTime ? new Date(record.config.publishConfig.scheduleTime) : undefined,
+                enableNotification: !!record.notificationConfig?.enabled,
+                emailList: record.notificationConfig?.emailList || [],
+                remindBeforeDays: record.notificationConfig?.remindBeforeDays || 1
+              });
+            }}
             title={`编辑任务: ${record.title}`}
           >
             编辑
           </Button>
           <Button
             type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteTask(record._id || record.id)}
-            title={`删除任务: ${record.title}`}
+            icon={<InfoCircleOutlined />}
+            onClick={() => handleViewTaskDetails(record)}
+            title={`查看详情: ${record.title}`}
           >
-            删除
+            详情
           </Button>
+          <Button
+            type="link"
+            icon={<SyncOutlined />}
+            onClick={() => handleViewTaskLogs(record)}
+            title={`查看日志: ${record.title}`}
+          >
+            日志
+          </Button>
+          {(record.status === 'completed' || record.status === 'failed' || record.status === 'cancelled') && (
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteTask(record._id || record.id)}
+              title={`删除任务: ${record.title}`}
+            >
+              删除
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -595,6 +762,227 @@ const Tasks: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 任务详情模态框 */}
+      <Modal
+        title={
+          <div>
+            任务详情
+            {selectedTask && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#999', 
+                marginLeft: '12px',
+                fontWeight: 'normal'
+              }}>
+                ID: {selectedTask._id || selectedTask.id}
+              </span>
+            )}
+          </div>
+        }
+        open={isDetailsModalVisible}
+        onCancel={() => {
+          setIsDetailsModalVisible(false);
+          setSelectedTask(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setIsDetailsModalVisible(false);
+            setSelectedTask(null);
+          }}>
+            关闭
+          </Button>,
+        ]}
+        width={800}
+      >
+        {selectedTask && (
+          <div>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="任务名称">{selectedTask.title}</Descriptions.Item>
+              <Descriptions.Item label="任务类型">
+                {{ 
+                  content_generation: '内容生成', 
+                  content_publish: '发布', 
+                  batch: '生成并发布' 
+                }[selectedTask.type] || selectedTask.type}
+              </Descriptions.Item>
+              <Descriptions.Item label="任务状态">
+                <Tag color={{
+                  pending: 'default',
+                  running: 'processing',
+                  paused: 'warning',
+                  completed: 'success',
+                  failed: 'error',
+                  cancelled: 'error'
+                }[selectedTask.status] || 'default'}>
+                  {{ 
+                    pending: '等待中', 
+                    running: '进行中', 
+                    paused: '已暂停', 
+                    completed: '已完成', 
+                    failed: '失败', 
+                    cancelled: '已取消' 
+                  }[selectedTask.status] || selectedTask.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="任务进度">
+                <Progress 
+                  percent={selectedTask.progress || 0} 
+                  status={(selectedTask.progress || 0) === 100 ? 'success' : 'active'}
+                />
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间">
+                {selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="启动时间">
+                {selectedTask.startedAt ? new Date(selectedTask.startedAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="暂停时间">
+                {selectedTask.pausedAt ? new Date(selectedTask.pausedAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="恢复时间">
+                {selectedTask.resumedAt ? new Date(selectedTask.resumedAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="完成时间">
+                {selectedTask.completedAt ? new Date(selectedTask.completedAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="创建者">
+                {typeof selectedTask.createdBy === 'object' && selectedTask.createdBy?.username ? selectedTask.createdBy.username : (typeof selectedTask.createdBy === 'string' ? selectedTask.createdBy : '-')}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {selectedTask.description && (
+              <div style={{ marginTop: '20px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>任务描述</h3>
+                <div style={{ 
+                  padding: '12px', 
+                  background: '#f9f9f9', 
+                  borderRadius: '6px',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {selectedTask.description}
+                </div>
+              </div>
+            )}
+
+            {selectedTask.result && (
+              <div style={{ marginTop: '20px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>任务结果</h3>
+                <div style={{ 
+                  padding: '12px', 
+                  background: '#f9f9f9', 
+                  borderRadius: '6px'
+                }}>
+                  {selectedTask.result.error ? (
+                    <div style={{ color: '#ff4d4f' }}>
+                      <strong>错误信息:</strong> {selectedTask.result.error}
+                    </div>
+                  ) : (
+                    <div>
+                      {selectedTask.result.generatedContent && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <strong>生成内容:</strong> {selectedTask.result.generatedContent.substring(0, 100)}...
+                        </div>
+                      )}
+                      {selectedTask.result.publishUrl && (
+                        <div>
+                          <strong>发布链接:</strong> <a href={selectedTask.result.publishUrl} target="_blank" rel="noopener noreferrer">{selectedTask.result.publishUrl}</a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* 任务日志模态框 */}
+      <Modal
+        title={
+          <div>
+            任务执行日志
+            {selectedTask && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#999', 
+                marginLeft: '12px',
+                fontWeight: 'normal'
+              }}>
+                任务: {selectedTask.title}
+              </span>
+            )}
+          </div>
+        }
+        open={isLogsModalVisible}
+        onCancel={() => {
+          setIsLogsModalVisible(false);
+          setSelectedTask(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setIsLogsModalVisible(false);
+            setSelectedTask(null);
+          }}>
+            关闭
+          </Button>,
+        ]}
+        width={800}
+        destroyOnClose
+      >
+        {selectedTask && (
+          <div>
+            {selectedTask.logs && selectedTask.logs.length > 0 ? (
+              <Timeline>
+                {selectedTask.logs.map((log, index) => (
+                  <Timeline.Item 
+                    key={index} 
+                    color={{
+                      info: '#1890ff',
+                      warning: '#faad14',
+                      error: '#ff4d4f'
+                    }[log.level] || '#1890ff'}
+                  >
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
+                      {new Date(log.timestamp).toLocaleString('zh-CN')}
+                    </div>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: log.level === 'error' ? '500' : 'normal',
+                      color: log.level === 'error' ? '#ff4d4f' : 'inherit'
+                    }}>
+                      {log.message}
+                    </div>
+                    {log.details && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#666', 
+                        marginTop: '4px',
+                        background: '#f9f9f9',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        overflow: 'auto',
+                        maxHeight: '100px'
+                      }}>
+                        <pre>{JSON.stringify(log.details, null, 2)}</pre>
+                      </div>
+                    )}
+                  </Timeline.Item>
+                ))}
+              </Timeline>
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px 0',
+                color: '#999'
+              }}>
+                暂无执行日志
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

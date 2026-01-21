@@ -84,7 +84,12 @@ export const apiClient = {
     update: (id: string, data: any) => api.put<ApiResponse>(`/tasks/${id}`, data),
     delete: (id: string) => api.delete<ApiResponse>(`/tasks/${id}`),
     start: (id: string) => api.post<ApiResponse>(`/tasks/${id}/start`),
-    stop: (id: string) => api.post<ApiResponse>(`/tasks/${id}/stop`),
+    pause: (id: string) => api.post<ApiResponse>(`/tasks/${id}/pause`),
+    resume: (id: string) => api.post<ApiResponse>(`/tasks/${id}/resume`),
+    cancel: (id: string) => api.post<ApiResponse>(`/tasks/${id}/cancel`),
+    addLog: (id: string, data: any) => api.post<ApiResponse>(`/tasks/${id}/logs`, data),
+    updateProgress: (id: string, data: any) => api.patch<ApiResponse>(`/tasks/${id}/progress`, data),
+    updateResult: (id: string, data: any) => api.patch<ApiResponse>(`/tasks/${id}/result`, data),
   },
   
   // 内容相关

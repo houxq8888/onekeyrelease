@@ -64,6 +64,29 @@ router.post('/', authMiddleware, async (req, res, _next) => {
   }
 });
 
+// 更新任务
+router.put('/:id', authMiddleware, async (req, res, _next) => {
+  try {
+    const userId = (req as any).user._id;
+    const taskId = req.params.id;
+    const taskData = req.body;
+    
+    // 移除可能被篡改的字段
+    delete taskData.createdBy;
+    delete taskData._id;
+    
+    const task = await TaskService.updateTask(taskId, userId, taskData);
+    
+    res.json({
+      success: true,
+      data: task,
+      message: '任务更新成功',
+    });
+  } catch (error) {
+    return _next(error);
+  }
+});
+
 // 启动任务
 router.post('/:id/start', authMiddleware, async (req, res, _next) => {
   try {
@@ -76,6 +99,79 @@ router.post('/:id/start', authMiddleware, async (req, res, _next) => {
       success: true,
       data: task,
       message: '任务启动成功',
+    });
+  } catch (error) {
+    return _next(error);
+  }
+});
+
+// 暂停任务
+router.post('/:id/pause', authMiddleware, async (req, res, _next) => {
+  try {
+    const userId = (req as any).user._id;
+    const taskId = req.params.id;
+    
+    const task = await TaskService.pauseTask(taskId, userId);
+    
+    res.json({
+      success: true,
+      data: task,
+      message: '任务暂停成功',
+    });
+  } catch (error) {
+    return _next(error);
+  }
+});
+
+// 恢复任务
+router.post('/:id/resume', authMiddleware, async (req, res, _next) => {
+  try {
+    const userId = (req as any).user._id;
+    const taskId = req.params.id;
+    
+    const task = await TaskService.resumeTask(taskId, userId);
+    
+    res.json({
+      success: true,
+      data: task,
+      message: '任务恢复成功',
+    });
+  } catch (error) {
+    return _next(error);
+  }
+});
+
+// 取消任务
+router.post('/:id/cancel', authMiddleware, async (req, res, _next) => {
+  try {
+    const userId = (req as any).user._id;
+    const taskId = req.params.id;
+    
+    const task = await TaskService.cancelTask(taskId, userId);
+    
+    res.json({
+      success: true,
+      data: task,
+      message: '任务取消成功',
+    });
+  } catch (error) {
+    return _next(error);
+  }
+});
+
+// 添加任务日志
+router.post('/:id/logs', authMiddleware, async (req, res, _next) => {
+  try {
+    const userId = (req as any).user._id;
+    const taskId = req.params.id;
+    const { level, message, details } = req.body;
+    
+    const task = await TaskService.addTaskLog(taskId, userId, level, message, details);
+    
+    res.json({
+      success: true,
+      data: task,
+      message: '任务日志添加成功',
     });
   } catch (error) {
     return _next(error);

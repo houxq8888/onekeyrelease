@@ -16,7 +16,7 @@ const TaskSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+        enum: ['pending', 'running', 'paused', 'completed', 'failed', 'cancelled'],
         default: 'pending',
     },
     progress: {
@@ -56,11 +56,52 @@ const TaskSchema = new Schema({
         publishUrl: String,
         error: String,
     },
+    logs: {
+        type: [
+            {
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                level: {
+                    type: String,
+                    enum: ['info', 'warning', 'error'],
+                    default: 'info',
+                },
+                message: {
+                    type: String,
+                    required: true,
+                },
+                details: {
+                    type: Schema.Types.Mixed,
+                },
+            },
+        ],
+        default: [],
+    },
+    notificationConfig: {
+        enabled: {
+            type: Boolean,
+            default: false,
+        },
+        emailList: {
+            type: [String],
+            default: [],
+        },
+        remindBeforeDays: {
+            type: Number,
+            default: 1,
+            min: 1,
+            max: 30,
+        },
+    },
     createdBy: {
         type: Schema.Types.Mixed,
         required: true,
     },
     startedAt: Date,
+    pausedAt: Date,
+    resumedAt: Date,
     completedAt: Date,
 }, {
     timestamps: true,
@@ -104,8 +145,41 @@ TaskSchema.methods.updateProgress = async function (progress, status) {
         this.status = status;
     }
     if (progress === 100 && !this.completedAt) {
+        this.status = 'completed';
         this.completedAt = new Date();
     }
+    await this.save();
+};
+// 实例方法：添加任务日志
+TaskSchema.methods.addLog = async function (level, message, details) {
+    const logEntry = {
+        timestamp: new Date(),
+        level,
+        message,
+        details,
+    };
+    this.logs = [...(this.logs || []), logEntry];
+    await this.save();
+};
+// 实例方法：暂停任务
+TaskSchema.methods.pause = async function () {
+    this.status = 'paused';
+    this.pausedAt = new Date();
+    await this.addLog('info', '任务已暂停');
+    await this.save();
+};
+// 实例方法：恢复任务
+TaskSchema.methods.resume = async function () {
+    this.status = 'running';
+    this.resumedAt = new Date();
+    await this.addLog('info', '任务已恢复执行');
+    await this.save();
+};
+// 实例方法：取消任务
+TaskSchema.methods.cancel = async function () {
+    this.status = 'cancelled';
+    this.completedAt = new Date();
+    await this.addLog('info', '任务已取消');
     await this.save();
 };
 export default mongoose.model('Task', TaskSchema);

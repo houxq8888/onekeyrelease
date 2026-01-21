@@ -4,7 +4,7 @@ export interface ITask extends Document {
   title: string;
   description?: string;
   type: 'content_generation' | 'content_publish' | 'batch';
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   config: {
     contentConfig?: {
@@ -33,11 +33,26 @@ export interface ITask extends Document {
     publishUrl?: string;
     error?: string;
   };
+  logs?: Array<{
+    timestamp: Date;
+    level: 'info' | 'warning' | 'error';
+    message: string;
+    details?: any;
+  }>;
   createdBy: string;
   startedAt?: Date;
+  pausedAt?: Date;
+  resumedAt?: Date;
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  
+  // 实例方法
+  updateProgress: (progress: number, status?: string) => Promise<void>;
+  addLog: (level: 'info' | 'warning' | 'error', message: string, details?: any) => Promise<void>;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
+  cancel: () => Promise<void>;
 }
 
 const TaskSchema: Schema = new Schema(
@@ -58,7 +73,7 @@ const TaskSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+      enum: ['pending', 'running', 'paused', 'completed', 'failed', 'cancelled'],
       default: 'pending',
     },
     progress: {
@@ -98,6 +113,29 @@ const TaskSchema: Schema = new Schema(
       publishUrl: String,
       error: String,
     },
+    logs: {
+      type: [
+        {
+          timestamp: {
+            type: Date,
+            default: Date.now,
+          },
+          level: {
+            type: String,
+            enum: ['info', 'warning', 'error'],
+            default: 'info',
+          },
+          message: {
+            type: String,
+            required: true,
+          },
+          details: {
+            type: Schema.Types.Mixed,
+          },
+        },
+      ],
+      default: [],
+    },
     notificationConfig: {
       enabled: {
         type: Boolean,
@@ -119,6 +157,8 @@ const TaskSchema: Schema = new Schema(
       required: true,
     },
     startedAt: Date,
+    pausedAt: Date,
+    resumedAt: Date,
     completedAt: Date,
   },
   {
@@ -176,8 +216,45 @@ TaskSchema.methods.updateProgress = async function(progress: number, status?: st
     (this as any).status = status;
   }
   if (progress === 100 && !(this as any).completedAt) {
+    (this as any).status = 'completed';
     (this as any).completedAt = new Date();
   }
+  await (this as any).save();
+};
+
+// 实例方法：添加任务日志
+TaskSchema.methods.addLog = async function(level: 'info' | 'warning' | 'error', message: string, details?: any) {
+  const logEntry = {
+    timestamp: new Date(),
+    level,
+    message,
+    details,
+  };
+  (this as any).logs = [...((this as any).logs || []), logEntry];
+  await (this as any).save();
+};
+
+// 实例方法：暂停任务
+TaskSchema.methods.pause = async function() {
+  (this as any).status = 'paused';
+  (this as any).pausedAt = new Date();
+  await (this as any).addLog('info', '任务已暂停');
+  await (this as any).save();
+};
+
+// 实例方法：恢复任务
+TaskSchema.methods.resume = async function() {
+  (this as any).status = 'running';
+  (this as any).resumedAt = new Date();
+  await (this as any).addLog('info', '任务已恢复执行');
+  await (this as any).save();
+};
+
+// 实例方法：取消任务
+TaskSchema.methods.cancel = async function() {
+  (this as any).status = 'cancelled';
+  (this as any).completedAt = new Date();
+  await (this as any).addLog('info', '任务已取消');
   await (this as any).save();
 };
 
