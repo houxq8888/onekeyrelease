@@ -4,9 +4,9 @@ export interface Task {
   _id?: string;
   title: string;
   description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  type: 'content_generation' | 'publish' | 'both';
-  accountId: string;
+  status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+  type: 'content_generation' | 'content_publish' | 'batch';
+  accountId?: string;
   content?: Content;
   publishTime?: string;
   createdAt: string;
@@ -16,6 +16,43 @@ export interface Task {
   createdBy?: {
     _id: string;
     username: string;
+  } | string;
+  startedAt?: string;
+  pausedAt?: string;
+  resumedAt?: string;
+  completedAt?: string;
+  logs?: Array<{
+    timestamp: string;
+    level: 'info' | 'warning' | 'error';
+    message: string;
+    details?: any;
+  }>;
+  result?: {
+    generatedContent?: string;
+    images?: string[];
+    video?: string;
+    publishUrl?: string;
+    error?: string;
+  };
+  config?: {
+    contentConfig?: {
+      theme: string;
+      keywords: string[];
+      targetAudience: string;
+      style: 'formal' | 'casual' | 'professional' | 'creative';
+      wordCount: number;
+    };
+    publishConfig?: {
+      accountId: string;
+      platform: 'xiaohongshu';
+      scheduleTime?: string;
+      autoPublish: boolean;
+    };
+  };
+  notificationConfig?: {
+    enabled: boolean;
+    emailList: string[];
+    remindBeforeDays: number;
   };
 }
 
