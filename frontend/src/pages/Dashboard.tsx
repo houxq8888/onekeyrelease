@@ -74,8 +74,8 @@ const Dashboard: React.FC = () => {
   const { data: statsData = [] } = useQuery<any[]>('dashboard-stats', async () => {
     const response = await apiClient.tasks.list();
     // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
-    if (response.data && response.data.tasks) {
-      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    if (response.data && (response.data as any).tasks) {
+      return Array.isArray((response.data as any).tasks) ? (response.data as any).tasks : [];
     }
     return Array.isArray(response.data) ? response.data : [];
   }, {
@@ -92,8 +92,8 @@ const Dashboard: React.FC = () => {
       sort: 'createdAt_desc' 
     });
     // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
-    if (response.data && response.data.tasks) {
-      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    if (response.data && (response.data as any).tasks) {
+      return Array.isArray((response.data as any).tasks) ? (response.data as any).tasks : [];
     }
     return Array.isArray(response.data) ? response.data : [];
   }, {
@@ -125,8 +125,8 @@ const Dashboard: React.FC = () => {
         try {
           const statusResponse = await apiClient.mobile.devices.status(device.deviceId);
           if (statusResponse.data) {
-            activeTasks += statusResponse.data.activeTasks || 0;
-            completedTasks += statusResponse.data.completedTasks || 0;
+            activeTasks += (statusResponse.data as any).activeTasks || 0;
+            completedTasks += (statusResponse.data as any).completedTasks || 0;
           }
         } catch (error) {
           console.error(`获取设备 ${device.deviceId} 状态失败:`, error);
@@ -411,7 +411,7 @@ const Dashboard: React.FC = () => {
                       title={
                         <div className="flex justify-between items-center">
                           <Text strong>{device.deviceName}</Text>
-                          <Tag color={device.isOnline ? 'green' : 'default'} size="small">
+                          <Tag color={device.isOnline ? 'green' : 'default'}>
                             {device.isOnline ? '在线' : '离线'}
                           </Tag>
                         </div>
@@ -490,7 +490,7 @@ const Dashboard: React.FC = () => {
               <Text type="secondary">向手机发送生成指令</Text>
               {mobileStatsInfo.onlineDevices > 0 && (
                 <div className="mt-2">
-                  <Tag color="green" size="small">
+                  <Tag color="green">
                     {mobileStatsInfo.onlineDevices} 设备在线
                   </Tag>
                 </div>
