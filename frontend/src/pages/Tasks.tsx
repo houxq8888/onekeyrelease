@@ -12,19 +12,29 @@ import {
   Checkbox,
   message,
   Card,
-  Typography 
+  Typography,
+  Progress,
+  Descriptions,
+  List,
+  Badge,
+  Divider
 } from 'antd';
 import dayjs from 'dayjs';
 import { 
   PlusOutlined, 
   PlayCircleOutlined, 
   EditOutlined, 
-  DeleteOutlined 
+  DeleteOutlined,
+  PauseCircleOutlined,
+  SyncOutlined,
+  CloseCircleOutlined,
+  FileTextOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { Task } from '../types';
-import { useLocaleStore } from '../store/localeStore';
+
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -32,18 +42,21 @@ const { Option } = Select;
 const Tasks: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [logModalVisible, setLogModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskLogs, setTaskLogs] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { t } = useLocaleStore();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
     // 后端返回的数据格式是 { success: true, data: { tasks: [...], total, page, pageSize } }
-    if (response.data && response.data.tasks) {
-      return Array.isArray(response.data.tasks) ? response.data.tasks : [];
+    if (response && response.data && (response.data as any).tasks) {
+      return Array.isArray((response.data as any).tasks) ? (response.data as any).tasks : [];
     }
-    return Array.isArray(response.data) ? response.data : [];
+    return [];
   });
 
   // 创建任务
@@ -111,6 +124,66 @@ const Tasks: React.FC = () => {
       },
     }
   );
+
+  // 中断任务
+  const interruptMutation = useMutation(
+    (id: string) => apiClient.tasks.interrupt(id),
+    {
+      onSuccess: () => {
+        message.success('任务中断成功');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '中断任务失败');
+      },
+    }
+  );
+
+  // 恢复任务
+  const resumeMutation = useMutation(
+    (id: string) => apiClient.tasks.resume(id),
+    {
+      onSuccess: () => {
+        message.success('任务恢复成功');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '恢复任务失败');
+      },
+    }
+  );
+
+  // 取消任务
+  const cancelMutation = useMutation(
+    (id: string) => apiClient.tasks.cancel(id),
+    {
+      onSuccess: () => {
+        message.success('任务取消成功');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '取消任务失败');
+      },
+    }
+  );
+
+  // 获取任务日志
+  const getTaskLogs = async (taskId: string) => {
+    try {
+      const response = await apiClient.tasks.getLogs(taskId);
+      if (response && response.data) {
+        setTaskLogs(response.data as unknown as any[]);
+      }
+    } catch (error) {
+      message.error('获取任务日志失败');
+    }
+  };
 
   const handleCreateTask = (values: any) => {
     // 检查发布时间是否合理
@@ -202,29 +275,48 @@ const Tasks: React.FC = () => {
   };
 
   const createTaskWithTime = (values: any) => {
-    const taskData = {
-      title: values.title,
-      description: values.description,
-      type: values.type,
-      config: {
-        contentConfig: {
-          theme: values.title,
-          keywords: [],
-          targetAudience: 'general',
-          style: 'casual',
-          wordCount: 500,
-        },
-        publishConfig: (values.publishTime && values.publishTime.toDate) ? {
-          scheduleTime: values.publishTime.toDate(),
-          autoPublish: true,
+    let taskData: any;
+    
+    // 检查是否是更新运行中的任务
+    const isUpdatingRunningTask = editingTask && editingTask.status === 'running';
+    
+    if (isUpdatingRunningTask) {
+      // 运行中的任务只能更新允许的字段
+      taskData = {
+        title: values.title,
+        description: values.description,
+        notificationConfig: values.enableNotification ? {
+          enabled: true,
+          emailList: values.emailList || [],
+          remindBeforeDays: values.remindBeforeDays || 1,
         } : undefined,
-      },
-      notificationConfig: values.enableNotification ? {
-        enabled: true,
-        emailList: values.emailList || [],
-        remindBeforeDays: values.remindBeforeDays || 1,
-      } : undefined,
-    };
+      };
+    } else {
+      // 非运行中的任务或新任务可以更新所有字段
+      taskData = {
+        title: values.title,
+        description: values.description,
+        type: values.type,
+        config: {
+          contentConfig: {
+            theme: values.title,
+            keywords: [],
+            targetAudience: 'general',
+            style: 'casual',
+            wordCount: 500,
+          },
+          publishConfig: (values.publishTime && values.publishTime.toDate) ? {
+            scheduleTime: values.publishTime.toDate(),
+            autoPublish: true,
+          } : undefined,
+        },
+        notificationConfig: values.enableNotification ? {
+          enabled: true,
+          emailList: values.emailList || [],
+          remindBeforeDays: values.remindBeforeDays || 1,
+        } : undefined,
+      };
+    }
 
     // 根据是否有 editingTask 决定是创建还是更新
     if (editingTask) {
@@ -247,6 +339,44 @@ const Tasks: React.FC = () => {
       content: '确定要删除这个任务吗？',
       onOk: () => deleteMutation.mutate(id),
     });
+  };
+
+  const handleInterruptTask = (id: string) => {
+    Modal.confirm({
+      title: '确认中断',
+      content: '确定要中断这个任务吗？',
+      onOk: () => interruptMutation.mutate(id),
+    });
+  };
+
+  const handleResumeTask = (id: string) => {
+    Modal.confirm({
+      title: '确认恢复',
+      content: '确定要恢复这个任务吗？',
+      onOk: () => resumeMutation.mutate(id),
+    });
+  };
+
+  const handleCancelTask = (id: string) => {
+    Modal.confirm({
+      title: '确认取消',
+      content: '确定要取消这个任务吗？',
+      onOk: () => cancelMutation.mutate(id),
+    });
+  };
+
+  const handleViewLogs = async (task: Task) => {
+    setSelectedTask(task);
+    await getTaskLogs(task._id || task.id);
+    setLogModalVisible(true);
+  };
+
+  const handleRefreshLogs = async () => {
+    if (selectedTask) {
+      setRefreshing(true);
+      await getTaskLogs(selectedTask._id || selectedTask.id);
+      setRefreshing(false);
+    }
   };
 
   const handleEditTask = (task: Task) => {
@@ -340,10 +470,21 @@ const Tasks: React.FC = () => {
           running: { color: 'processing', text: '进行中' },
           completed: { color: 'success', text: '已完成' },
           failed: { color: 'error', text: '失败' },
+          cancelled: { color: 'default', text: '已取消' },
+          interrupted: { color: 'warning', text: '已中断' },
         };
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
         return <Tag color={config.color}>{config.text}</Tag>;
       },
+    },
+    {
+      title: '进度',
+      dataIndex: 'progress',
+      key: 'progress',
+      width: 150,
+      render: (progress: number) => (
+        <Progress percent={progress} size="small" />
+      ),
     },
     {
       title: '类型',
@@ -379,10 +520,10 @@ const Tasks: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 300,
       render: (_: any, record: Task) => (
         <Space size="middle">
-          {record.status === 'pending' && (
+          {(record.status === 'pending' || record.status === 'cancelled') && (
             <Button
               type="link"
               icon={<PlayCircleOutlined />}
@@ -392,6 +533,45 @@ const Tasks: React.FC = () => {
               启动
             </Button>
           )}
+          {record.status === 'running' && (
+            <Button
+              type="link"
+              icon={<PauseCircleOutlined />}
+              onClick={() => handleInterruptTask(record._id || record.id)}
+              title={`中断任务: ${record.title}`}
+            >
+              中断
+            </Button>
+          )}
+          {(record.status === 'running' || record.status === 'interrupted') && (
+            <Button
+              type="link"
+              danger
+              icon={<CloseCircleOutlined />}
+              onClick={() => handleCancelTask(record._id || record.id)}
+              title={`取消任务: ${record.title}`}
+            >
+              取消
+            </Button>
+          )}
+          {record.status === 'interrupted' && (
+            <Button
+              type="link"
+              icon={<SyncOutlined />}
+              onClick={() => handleResumeTask(record._id || record.id)}
+              title={`恢复任务: ${record.title}`}
+            >
+              恢复
+            </Button>
+          )}
+          <Button
+            type="link"
+            icon={<FileTextOutlined />}
+            onClick={() => handleViewLogs(record)}
+            title={`查看日志: ${record.title}`}
+          >
+            日志
+          </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -595,6 +775,117 @@ const Tasks: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 日志查看模态框 */}
+      <Modal
+        title={
+          <div className="flex justify-between items-center">
+            <span>任务执行日志</span>
+            {selectedTask && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#999', 
+                fontWeight: 'normal'
+              }}>
+                任务: {selectedTask.title}
+              </span>
+            )}
+          </div>
+        }
+        open={logModalVisible}
+        onCancel={() => {
+          setLogModalVisible(false);
+          setSelectedTask(null);
+          setTaskLogs([]);
+        }}
+        footer={null}
+        width={800}
+        height={600}
+      >
+        {selectedTask && (
+          <div>
+            <Descriptions size="small" column={2} style={{ marginBottom: '16px' }}>
+              <Descriptions.Item label="任务ID">{selectedTask._id || selectedTask.id}</Descriptions.Item>
+              <Descriptions.Item label="任务状态">
+                <Tag color={{
+                  pending: 'default',
+                  running: 'processing',
+                  completed: 'success',
+                  failed: 'error',
+                  cancelled: 'default',
+                  interrupted: 'warning'
+                }[selectedTask.status] || 'default'}>
+                  {{
+                    pending: '等待中',
+                    running: '进行中',
+                    completed: '已完成',
+                    failed: '失败',
+                    cancelled: '已取消',
+                    interrupted: '已中断'
+                  }[selectedTask.status] || selectedTask.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="任务进度">{selectedTask.progress}%</Descriptions.Item>
+              <Descriptions.Item label="创建时间">
+                {selectedTask.createdAt ? new Date(selectedTask.createdAt).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+              {('startedAt' in selectedTask && selectedTask.startedAt) && (
+                <Descriptions.Item label="开始时间">
+                  {new Date(selectedTask.startedAt).toLocaleString('zh-CN')}
+                </Descriptions.Item>
+              )}
+              {('completedAt' in selectedTask && selectedTask.completedAt) && (
+                <Descriptions.Item label="完成时间">
+                  {new Date(selectedTask.completedAt).toLocaleString('zh-CN')}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+            
+            <Divider orientation="left">执行日志</Divider>
+            
+            <div className="flex justify-between items-center mb-4">
+              <span>日志记录</span>
+              <Button
+                type="link"
+                icon={<ReloadOutlined />}
+                onClick={handleRefreshLogs}
+                loading={refreshing}
+              >
+                刷新
+              </Button>
+            </div>
+            
+            <List
+              dataSource={taskLogs}
+              renderItem={(log) => (
+                <List.Item
+                  key={log.timestamp}
+                  extra={
+                    <Badge status={({
+                      info: 'default',
+                      warn: 'warning',
+                      error: 'error',
+                      debug: 'processing'
+                    } as any)[log.level] || 'default'} text={log.level} />
+                  }
+                >
+                  <List.Item.Meta
+                    title={
+                      <div className="flex justify-between items-center">
+                        <span>{log.message}</span>
+                        <span style={{ fontSize: '12px', color: '#999' }}>
+                          {log.timestamp ? new Date(log.timestamp).toLocaleString('zh-CN') : '-'}
+                        </span>
+                      </div>
+                    }
+                  />
+                </List.Item>
+              )}
+              locale={{ emptyText: '暂无日志记录' }}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

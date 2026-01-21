@@ -16,7 +16,7 @@ const TaskSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+        enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'interrupted'],
         default: 'pending',
     },
     progress: {
@@ -56,12 +56,47 @@ const TaskSchema = new Schema({
         publishUrl: String,
         error: String,
     },
+    logs: {
+        type: [{
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                message: {
+                    type: String,
+                    required: true,
+                },
+                level: {
+                    type: String,
+                    enum: ['info', 'warn', 'error', 'debug'],
+                    default: 'info',
+                },
+            }],
+        default: [],
+    },
+    notificationConfig: {
+        enabled: {
+            type: Boolean,
+            default: false,
+        },
+        emailList: {
+            type: [String],
+            default: [],
+        },
+        remindBeforeDays: {
+            type: Number,
+            default: 1,
+            min: 1,
+            max: 30,
+        },
+    },
     createdBy: {
         type: Schema.Types.Mixed,
         required: true,
     },
     startedAt: Date,
     completedAt: Date,
+    interruptedAt: Date,
 }, {
     timestamps: true,
 });
@@ -106,6 +141,37 @@ TaskSchema.methods.updateProgress = async function (progress, status) {
     if (progress === 100 && !this.completedAt) {
         this.completedAt = new Date();
     }
+    await this.save();
+};
+// 实例方法：记录任务日志
+TaskSchema.methods.addLog = async function (message, level = 'info') {
+    const logEntry = {
+        timestamp: new Date(),
+        message,
+        level
+    };
+    this.logs.push(logEntry);
+    await this.save();
+};
+// 实例方法：中断任务
+TaskSchema.methods.interrupt = async function () {
+    this.status = 'interrupted';
+    this.interruptedAt = new Date();
+    await this.addLog('任务已中断', 'info');
+    await this.save();
+};
+// 实例方法：恢复任务
+TaskSchema.methods.resume = async function () {
+    this.status = 'running';
+    this.interruptedAt = undefined;
+    await this.addLog('任务已恢复', 'info');
+    await this.save();
+};
+// 实例方法：取消任务
+TaskSchema.methods.cancel = async function () {
+    this.status = 'cancelled';
+    this.completedAt = new Date();
+    await this.addLog('任务已取消', 'info');
     await this.save();
 };
 export default mongoose.model('Task', TaskSchema);

@@ -3,20 +3,51 @@ export interface Task {
   id: string;
   _id?: string;
   title: string;
-  description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  type: 'content_generation' | 'publish' | 'both';
-  accountId: string;
-  content?: Content;
-  publishTime?: string;
-  createdAt: string;
-  updatedAt: string;
-  progress?: number;
-  errorMessage?: string;
-  createdBy?: {
+  description?: string;
+  type: 'content_generation' | 'content_publish' | 'batch';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
+  progress: number;
+  config: {
+    contentConfig?: {
+      theme: string;
+      keywords: string[];
+      targetAudience: string;
+      style: 'formal' | 'casual' | 'professional' | 'creative';
+      wordCount: number;
+    };
+    publishConfig?: {
+      accountId: string;
+      platform: 'xiaohongshu';
+      scheduleTime?: Date;
+      autoPublish: boolean;
+    };
+  };
+  notificationConfig?: {
+    enabled: boolean;
+    emailList: string[];
+    remindBeforeDays: number;
+  };
+  result?: {
+    generatedContent?: string;
+    images?: string[];
+    video?: string;
+    publishUrl?: string;
+    error?: string;
+  };
+  logs?: Array<{
+    timestamp: Date;
+    message: string;
+    level: 'info' | 'warn' | 'error' | 'debug';
+  }>;
+  createdBy: string | {
     _id: string;
     username: string;
   };
+  startedAt?: Date;
+  completedAt?: Date;
+  interruptedAt?: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 // 内容相关类型
