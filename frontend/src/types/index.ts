@@ -4,8 +4,8 @@ export interface Task {
   _id?: string;
   title: string;
   description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  type: 'content_generation' | 'publish' | 'both';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
+  type: 'content_generation' | 'content_publish' | 'batch';
   accountId: string;
   content?: Content;
   publishTime?: string;
@@ -16,6 +16,30 @@ export interface Task {
   createdBy?: {
     _id: string;
     username: string;
+  };
+  logs?: Array<{
+    timestamp: string;
+    message: string;
+    level: 'info' | 'warn' | 'error' | 'debug';
+    step?: string;
+  }>;
+  config?: {
+    contentConfig?: {
+      theme: string;
+      keywords: string[];
+      targetAudience: string;
+      style: string;
+      wordCount: number;
+    };
+    publishConfig?: {
+      scheduleTime: string;
+      autoPublish: boolean;
+    };
+  };
+  notificationConfig?: {
+    enabled: boolean;
+    emailList: string[];
+    remindBeforeDays: number;
   };
 }
 
@@ -70,6 +94,15 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  // 以下是可能在不同API响应中出现的属性
+  tasks?: any[];
+  logs?: any[];
+  activeTasks?: number;
+  completedTasks?: number;
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 // 分页类型

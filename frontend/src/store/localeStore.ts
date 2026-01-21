@@ -4,7 +4,12 @@ import zhCN from '../locales/zh-CN';
 import zhTW from '../locales/zh-TW';
 import enUS from '../locales/en-US';
 
-const locales = {
+// 定义语言包类型，添加索引签名
+type LocaleType = {
+  [key: string]: string;
+};
+
+const locales: Record<string, LocaleType> = {
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'en-US': enUS,

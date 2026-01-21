@@ -85,6 +85,10 @@ export const apiClient = {
     delete: (id: string) => api.delete<ApiResponse>(`/tasks/${id}`),
     start: (id: string) => api.post<ApiResponse>(`/tasks/${id}/start`),
     stop: (id: string) => api.post<ApiResponse>(`/tasks/${id}/stop`),
+    pause: (id: string) => api.post<ApiResponse>(`/tasks/${id}/pause`),
+    resume: (id: string) => api.post<ApiResponse>(`/tasks/${id}/resume`),
+    cancel: (id: string) => api.post<ApiResponse>(`/tasks/${id}/cancel`),
+    logs: (id: string) => api.get<ApiResponse>(`/tasks/${id}/logs`),
   },
   
   // 内容相关

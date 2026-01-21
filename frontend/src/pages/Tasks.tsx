@@ -19,12 +19,16 @@ import {
   PlusOutlined, 
   PlayCircleOutlined, 
   EditOutlined, 
-  DeleteOutlined 
+  DeleteOutlined,
+  PauseCircleOutlined,
+  CaretRightOutlined,
+  CloseCircleOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { Task } from '../types';
-import { useLocaleStore } from '../store/localeStore';
+
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -34,7 +38,6 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { t } = useLocaleStore();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
@@ -111,6 +114,70 @@ const Tasks: React.FC = () => {
       },
     }
   );
+
+  // 暂停任务
+  const pauseMutation = useMutation(
+    (id: string) => apiClient.tasks.pause(id),
+    {
+      onSuccess: () => {
+        message.success('任务已暂停');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '暂停任务失败');
+      },
+    }
+  );
+
+  // 恢复任务
+  const resumeMutation = useMutation(
+    (id: string) => apiClient.tasks.resume(id),
+    {
+      onSuccess: () => {
+        message.success('任务已恢复');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '恢复任务失败');
+      },
+    }
+  );
+
+  // 取消任务
+  const cancelMutation = useMutation(
+    (id: string) => apiClient.tasks.cancel(id),
+    {
+      onSuccess: () => {
+        message.success('任务已取消');
+        queryClient.invalidateQueries('tasks');
+        queryClient.invalidateQueries('dashboard-stats');
+        queryClient.invalidateQueries('recent-tasks');
+      },
+      onError: (error: any) => {
+        message.error(error.response?.data?.error || '取消任务失败');
+      },
+    }
+  );
+
+  // 查看任务日志
+  const [logsModalVisible, setLogsModalVisible] = useState(false);
+  const [currentTaskLogs, setCurrentTaskLogs] = useState<any[]>([]);
+  const [currentTaskTitle, setCurrentTaskTitle] = useState('');
+
+  const handleViewLogs = async (task: Task) => {
+    try {
+      const response = await apiClient.tasks.logs(task._id || task.id);
+      setCurrentTaskLogs(response.data?.logs || []);
+      setCurrentTaskTitle(task.title);
+      setLogsModalVisible(true);
+    } catch (error) {
+      message.error('获取日志失败');
+    }
+  };
 
   const handleCreateTask = (values: any) => {
     // 检查发布时间是否合理
@@ -340,9 +407,35 @@ const Tasks: React.FC = () => {
           running: { color: 'processing', text: '进行中' },
           completed: { color: 'success', text: '已完成' },
           failed: { color: 'error', text: '失败' },
+          paused: { color: 'warning', text: '已暂停' },
+          cancelled: { color: 'error', text: '已取消' },
         };
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
         return <Tag color={config.color}>{config.text}</Tag>;
+      },
+    },
+    {
+      title: '进度',
+      dataIndex: 'progress',
+      key: 'progress',
+      width: 150,
+      render: (progress: number) => {
+        if (progress === undefined || progress === null) return '-';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ flex: 1, height: '6px', background: '#f0f0f0', borderRadius: '3px' }}>
+              <div 
+                style={{ 
+                  height: '100%', 
+                  background: '#1890ff', 
+                  borderRadius: '3px',
+                  width: `${progress}%`
+                }}
+              />
+            </div>
+            <span style={{ fontSize: '12px', color: '#666' }}>{progress}%</span>
+          </div>
+        );
       },
     },
     {
@@ -379,7 +472,7 @@ const Tasks: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 300,
       render: (_: any, record: Task) => (
         <Space size="middle">
           {record.status === 'pending' && (
@@ -392,13 +485,64 @@ const Tasks: React.FC = () => {
               启动
             </Button>
           )}
+          {record.status === 'running' && (
+            <>
+              <Button
+                type="link"
+                icon={<PauseCircleOutlined />}
+                onClick={() => pauseMutation.mutate(record._id || record.id)}
+                title={`暂停任务: ${record.title}`}
+              >
+                暂停
+              </Button>
+              <Button
+                type="link"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => cancelMutation.mutate(record._id || record.id)}
+                title={`取消任务: ${record.title}`}
+              >
+                取消
+              </Button>
+            </>
+          )}
+          {record.status === 'paused' && (
+            <>
+              <Button
+                type="link"
+                icon={<CaretRightOutlined />}
+                onClick={() => resumeMutation.mutate(record._id || record.id)}
+                title={`恢复任务: ${record.title}`}
+              >
+                恢复
+              </Button>
+              <Button
+                type="link"
+                danger
+                icon={<CloseCircleOutlined />}
+                onClick={() => cancelMutation.mutate(record._id || record.id)}
+                title={`取消任务: ${record.title}`}
+              >
+                取消
+              </Button>
+            </>
+          )}
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEditTask(record)}
             title={`编辑任务: ${record.title}`}
+            disabled={['running', 'paused'].includes(record.status)}
           >
             编辑
+          </Button>
+          <Button
+            type="link"
+            icon={<FileTextOutlined />}
+            onClick={() => handleViewLogs(record)}
+            title={`查看日志: ${record.title}`}
+          >
+            日志
           </Button>
           <Button
             type="link"
@@ -595,6 +739,76 @@ const Tasks: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 任务日志模态框 */}
+      <Modal
+        title={
+          <div>
+            <FileTextOutlined style={{ marginRight: '8px' }} />
+            任务日志: {currentTaskTitle}
+          </div>
+        }
+        open={logsModalVisible}
+        onCancel={() => setLogsModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setLogsModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={800}
+        style={{ maxHeight: '80vh' }}
+      >
+        <div style={{ 
+          maxHeight: '60vh', 
+          overflowY: 'auto',
+          background: '#fafafa',
+          padding: '16px',
+          borderRadius: '4px',
+          fontFamily: 'monospace',
+          fontSize: '12px'
+        }}>
+          {currentTaskLogs.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+              暂无日志信息
+            </div>
+          ) : (
+            currentTaskLogs.map((log, index) => (
+              <div 
+                key={index} 
+                style={{ 
+                  marginBottom: '4px',
+                  color: log.level === 'error' ? '#ff4d4f' : 
+                         log.level === 'warn' ? '#faad14' : 
+                         log.level === 'debug' ? '#1890ff' : '#333'
+                }}
+              >
+                <span style={{ color: '#999', marginRight: '8px' }}>
+                  [{new Date(log.timestamp).toLocaleString('zh-CN')}]
+                </span>
+                {log.step && (
+                  <span style={{ 
+                    color: '#52c41a', 
+                    marginRight: '8px',
+                    fontWeight: 'bold'
+                  }}>
+                    [{log.step}]
+                  </span>
+                )}
+                <span style={{ 
+                  color: log.level === 'error' ? '#ff4d4f' : 
+                         log.level === 'warn' ? '#faad14' : 
+                         log.level === 'debug' ? '#1890ff' : '#333'
+                }}>
+                  [{log.level.toUpperCase()}]
+                </span>
+                <span style={{ marginLeft: '8px' }}>
+                  {log.message}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </Modal>
     </div>
   );
