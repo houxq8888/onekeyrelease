@@ -146,6 +146,19 @@ export const apiClient = {
       download: (contentId: string) => api.get<ApiResponse>(`/mobile/content/download/${contentId}`),
     },
   },
+
+  // 模板相关
+  templates: {
+    list: (params?: any) => api.get<ApiResponse>('/templates', { params }),
+    create: (data: any) => api.post<ApiResponse>('/templates', data),
+    get: (id: string) => api.get<ApiResponse>(`/templates/${id}`),
+    update: (id: string, data: any) => api.put<ApiResponse>(`/templates/${id}`, data),
+    delete: (id: string) => api.delete<ApiResponse>(`/templates/${id}`),
+    favorite: (id: string) => api.post<ApiResponse>(`/templates/${id}/favorite`),
+    unfavorite: (id: string) => api.delete<ApiResponse>(`/templates/${id}/favorite`),
+    favorites: () => api.get<ApiResponse>('/templates/favorites/list'),
+    isFavorite: (id: string) => api.get<ApiResponse>(`/templates/${id}/favorite`),
+  },
 };
 
 export default api;
