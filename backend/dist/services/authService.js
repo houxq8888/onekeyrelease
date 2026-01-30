@@ -192,8 +192,9 @@ export class AuthService {
             // 检查是否是演示token
             if (token === 'demo-token') {
                 // 演示模式：返回演示用户信息
+                // 使用有效的MongoDB ObjectId格式
                 return {
-                    _id: 'demo-user-id',
+                    _id: '678901234567890123456789',
                     username: '演示用户',
                     email: 'demo@example.com',
                     role: 'admin',

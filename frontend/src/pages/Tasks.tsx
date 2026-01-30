@@ -9,7 +9,7 @@ import {
   Input, 
   Select, 
   DatePicker, 
-  message,
+  App,
   Card,
   Typography 
 } from 'antd';
@@ -31,11 +31,18 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
-    return Array.isArray(response.data) ? response.data : [];
+    const result = response.data as any;
+    if (result && Array.isArray(result.tasks)) {
+      return result.tasks;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+    return [];
   });
 
   // 创建任务
@@ -49,6 +56,7 @@ const Tasks: React.FC = () => {
     onError: (error: any) => {
       message.error(error.response?.data?.error || '创建任务失败');
     },
+    retry: false,
   });
 
   // 启动任务
@@ -62,6 +70,7 @@ const Tasks: React.FC = () => {
       onError: (error: any) => {
         message.error(error.response?.data?.error || '启动任务失败');
       },
+      retry: false,
     }
   );
 
@@ -76,6 +85,7 @@ const Tasks: React.FC = () => {
       onError: (error: any) => {
         message.error(error.response?.data?.error || '删除任务失败');
       },
+      retry: false,
     }
   );
 
@@ -127,12 +137,12 @@ const Tasks: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       render: (type: string) => {
-        const typeText = {
+        const typeText: Record<string, string> = {
           content_generation: '内容生成',
-          publish: '发布',
-          both: '生成并发布',
+          content_publish: '发布',
+          batch: '批量任务',
         };
-        return typeText[type as keyof typeof typeText] || type;
+        return typeText[type] || type;
       },
     },
     {
@@ -200,7 +210,7 @@ const Tasks: React.FC = () => {
         <Table
           columns={columns}
           dataSource={tasks}
-          rowKey="id"
+          rowKey={(record: Task) => record.id || (record as any)._id || String(Math.random())}
           loading={isLoading}
           pagination={{
             pageSize: 10,
@@ -227,7 +237,7 @@ const Tasks: React.FC = () => {
           layout="vertical"
           onFinish={handleCreateTask}
           initialValues={editingTask || {
-            type: 'both',
+            type: 'content_generation',
           }}
         >
           <Form.Item
@@ -255,8 +265,8 @@ const Tasks: React.FC = () => {
           >
             <Select placeholder="请选择任务类型">
               <Option value="content_generation">内容生成</Option>
-              <Option value="publish">发布</Option>
-              <Option value="both">生成并发布</Option>
+              <Option value="content_publish">发布</Option>
+              <Option value="batch">批量任务</Option>
             </Select>
           </Form.Item>
 

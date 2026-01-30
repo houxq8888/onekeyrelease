@@ -211,6 +211,36 @@ export class QRCodeService {
         }
     }
     /**
+     * 生成设备配对数据（用于API返回）
+     * @param deviceId 设备ID
+     * @param serverUrl 服务器地址
+     */
+    static generatePairingData(deviceId, serverUrl) {
+        return {
+            type: 'device_pairing',
+            deviceId,
+            serverUrl,
+            timestamp: Date.now(),
+            version: '1.0.0'
+        };
+    }
+    /**
+     * 生成连接数据（用于API返回）
+     * @param deviceId 设备ID
+     * @param serverUrl 服务器地址
+     */
+    static generateConnectionData(deviceId, serverUrl) {
+        const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+        return {
+            type: 'websocket_connection',
+            deviceId,
+            wsUrl,
+            serverUrl,
+            timestamp: Date.now(),
+            version: '1.0.0'
+        };
+    }
+    /**
      * 生成二维码数据URL（用于前端显示）
      * @param qrCodeData 二维码数据
      */

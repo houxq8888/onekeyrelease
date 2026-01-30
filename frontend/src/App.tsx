@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+import zhTW from 'antd/locale/zh_TW';
+import enUS from 'antd/locale/en_US';
 import AppHeader from './components/layout/AppHeader';
 import AppSidebar from './components/layout/AppSidebar';
 import Dashboard from './pages/Dashboard';
@@ -15,13 +17,24 @@ import TemplatesLibrary from './pages/TemplatesLibrary';
 import { useAppStore } from './store/appStore';
 import { useAuthStore } from './store/authStore';
 
+const { defaultAlgorithm, darkAlgorithm } = theme;
+
+const localeMap: Record<string, any> = {
+  'zh-CN': zhCN,
+  'zh-TW': zhTW,
+  'en-US': enUS,
+};
+
 
 const { Content } = Layout;
 
 const App: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme: appTheme, language } = useAppStore();
   const { isAuthenticated, token, user, login } = useAuthStore();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const isDark = appTheme === 'dark';
+  const currentLocale = localeMap[language] || zhCN;
 
   console.log('App组件认证状态:', { isAuthenticated, token, user });
 
@@ -58,12 +71,19 @@ const App: React.FC = () => {
   // 如果正在检查认证状态，显示加载中
   if (isCheckingAuth) {
     return (
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider 
+        locale={currentLocale}
+        theme={{
+          algorithm: isDark ? darkAlgorithm : defaultAlgorithm,
+        }}
+      >
         <AntdApp>
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">初始化演示版本...</p>
+              <p className={`mt-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {language === 'en-US' ? 'Initializing demo...' : language === 'zh-TW' ? '初始化範例版本...' : '初始化演示版本...'}
+              </p>
             </div>
           </div>
         </AntdApp>
@@ -75,17 +95,27 @@ const App: React.FC = () => {
   console.log('演示版本，直接进入主界面');
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider 
+      locale={currentLocale}
+      theme={{
+        algorithm: isDark ? darkAlgorithm : defaultAlgorithm,
+        token: isDark ? {
+          colorBgLayout: '#141414',
+          colorBgContainer: '#1f1f1f',
+          colorBgElevated: '#2a2a2a',
+        } : {},
+      }}
+    >
         <AntdApp>
-          <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+          <Layout style={{ minHeight: '100vh', backgroundColor: isDark ? '#141414' : '#ffffff' }}>
             <AppHeader />
-            <Layout style={{ backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+            <Layout style={{ backgroundColor: isDark ? '#141414' : '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
               <AppSidebar />
               <Layout 
                 className="transition-all duration-200" 
                 style={{ 
                   marginLeft: sidebarCollapsed ? 80 : 200,
-                  backgroundColor: '#f0f2f5',
+                  backgroundColor: isDark ? '#141414' : '#f0f2f5',
                   minHeight: 'calc(100vh - 64px)'
                 }}
               >

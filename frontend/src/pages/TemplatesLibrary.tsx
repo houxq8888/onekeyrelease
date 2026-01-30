@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select, Space, Tag, Divider, Empty, Spin, Alert, Tooltip, Modal } from 'antd';
-import { FilterOutlined, SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { Template, TemplateCategory, TemplateFilter } from '../types';
 import { apiClient } from '../utils/api';
 
@@ -15,7 +15,7 @@ const TemplatesLibrary: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<TemplateFilter>({});
+  const [filters] = useState<TemplateFilter>({});
   const [searchValue, setSearchValue] = useState('');
   const [categoryValue, setCategoryValue] = useState<TemplateCategory | undefined>();
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
@@ -36,10 +36,17 @@ const TemplatesLibrary: React.FC = () => {
         isFavorite: isFavoriteFilter ? 'true' : undefined
       };
       const response = await apiClient.templates.list(params);
-      if (response.success && response.data) {
-        setTemplates(response.data);
+      if (response.data) {
+        const result = response.data as any;
+        if (Array.isArray(result)) {
+          setTemplates(result);
+        } else if (result.data && Array.isArray(result.data)) {
+          setTemplates(result.data);
+        } else {
+          setTemplates([]);
+        }
       } else {
-        throw new Error(response.error || '获取模板列表失败');
+        throw new Error('获取模板列表失败');
       }
     } catch (err: any) {
       console.error('获取模板列表失败:', err);
