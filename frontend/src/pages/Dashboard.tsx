@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -21,6 +22,7 @@ const Dashboard: React.FC = () => {
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [registerForm] = Form.useForm();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // 设备注册mutation
   const registerDeviceMutation = useMutation(
@@ -98,9 +100,9 @@ const Dashboard: React.FC = () => {
       for (const device of devices) {
         try {
           const statusResponse = await apiClient.mobile.devices.status(device.deviceId);
-          if (statusResponse.data) {
-            activeTasks += statusResponse.data.activeTasks || 0;
-            completedTasks += statusResponse.data.completedTasks || 0;
+          if (statusResponse.data.data) {
+            activeTasks += statusResponse.data.data.activeTasks || 0;
+            completedTasks += statusResponse.data.data.completedTasks || 0;
           }
         } catch (error) {
           console.error(`获取设备 ${device.deviceId} 状态失败:`, error);
@@ -138,9 +140,9 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题 */}
       <div>
-        <Title level={2}>仪表板</Title>
+        <Title level={2}>{t('dashboard.title')}</Title>
         <Text type="secondary">
-          查看任务统计和最近活动
+          {t('dashboard.description')}
         </Text>
       </div>
 
@@ -149,7 +151,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="总任务数"
+              title={t('dashboard.stats.totalTasks')}
               value={stats.total}
               prefix={<ClockCircleOutlined />}
               valueStyle={{ color: '#3b82f6' }}
@@ -159,7 +161,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="进行中"
+              title={t('dashboard.stats.runningTasks')}
               value={stats.running}
               prefix={<PlayCircleOutlined />}
               valueStyle={{ color: '#f59e0b' }}
@@ -169,7 +171,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="已完成"
+              title={t('dashboard.stats.completedTasks')}
               value={stats.completed}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#10b981' }}
@@ -179,7 +181,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="失败"
+              title={t('dashboard.stats.failedTasks')}
               value={stats.failed}
               prefix={<ExclamationCircleOutlined />}
               valueStyle={{ color: '#ef4444' }}
@@ -340,7 +342,7 @@ const Dashboard: React.FC = () => {
                       title={
                         <div className="flex justify-between items-center">
                           <Text strong>{device.deviceName}</Text>
-                          <Tag color={device.isOnline ? 'green' : 'default'} size="small">
+                          <Tag color={device.isOnline ? 'green' : 'default'}>
                             {device.isOnline ? '在线' : '离线'}
                           </Tag>
                         </div>
@@ -419,7 +421,7 @@ const Dashboard: React.FC = () => {
               <Text type="secondary">向手机发送生成指令</Text>
               {mobileStatsInfo.onlineDevices > 0 && (
                 <div className="mt-2">
-                  <Tag color="green" size="small">
+                  <Tag color="green">
                     {mobileStatsInfo.onlineDevices} 设备在线
                   </Tag>
                 </div>

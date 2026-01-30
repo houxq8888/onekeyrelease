@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, Layout, App as AntdApp } from 'antd';
+import { ConfigProvider, Layout, App as AntdApp, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+import zhTW from 'antd/locale/zh_TW';
+import enUS from 'antd/locale/en_US';
 import AppHeader from './components/layout/AppHeader';
 import AppSidebar from './components/layout/AppSidebar';
 import Dashboard from './pages/Dashboard';
@@ -19,9 +21,38 @@ import { useAuthStore } from './store/authStore';
 const { Content } = Layout;
 
 const App: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme: appTheme, language } = useAppStore();
   const { isAuthenticated, token, user, login } = useAuthStore();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // 应用主题类到document
+  React.useEffect(() => {
+    if (appTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [appTheme]);
+
+  // 监听语言变化，强制重新渲染
+  React.useEffect(() => {
+    console.log('语言已切换到:', language);
+    // 强制重新渲染整个应用
+    // 这会确保所有使用useTranslation的组件都会重新渲染
+  }, [language]);
+
+  // 根据语言设置获取对应的locale
+  const getLocale = () => {
+    switch (language) {
+      case 'zh-TW':
+        return zhTW;
+      case 'en-US':
+        return enUS;
+      case 'zh-CN':
+      default:
+        return zhCN;
+    }
+  };
 
   console.log('App组件认证状态:', { isAuthenticated, token, user });
 
@@ -55,57 +86,55 @@ const App: React.FC = () => {
     setupDemoAuth();
   }, [isAuthenticated, token, login]);
 
-  // 如果正在检查认证状态，显示加载中
-  if (isCheckingAuth) {
-    return (
-      <ConfigProvider locale={zhCN}>
-        <AntdApp>
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">初始化演示版本...</p>
-            </div>
-          </div>
-        </AntdApp>
-      </ConfigProvider>
-    );
-  }
-
   // 演示版本：直接进入主界面，跳过登录页面
   console.log('演示版本，直接进入主界面');
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider 
+      locale={getLocale()}
+      theme={{
+        algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
         <AntdApp>
-          <Layout style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
-            <AppHeader />
-            <Layout style={{ backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-              <AppSidebar />
-              <Layout 
-                className="transition-all duration-200" 
-                style={{ 
-                  marginLeft: sidebarCollapsed ? 80 : 200,
-                  backgroundColor: '#f0f2f5',
-                  minHeight: 'calc(100vh - 64px)'
-                }}
-              >
-                <Content className="p-6" style={{ minHeight: 'calc(100vh - 64px)' }}>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/content" element={<ContentGenerator />} />
-                    <Route path="/content/history" element={<ContentHistory />} />
-                    <Route path="/templates" element={<TemplatesLibrary />} />
-                    <Route path="/accounts" element={<Accounts />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/state-machine" element={<StateMachineEditor />} />
-                    <Route path="/auth" element={<Navigate to="/" replace />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Content>
+          {isCheckingAuth ? (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600 dark:text-gray-300">初始化演示版本...</p>
+              </div>
+            </div>
+          ) : (
+            <Layout style={{ minHeight: '100vh', backgroundColor: appTheme === 'dark' ? '#141414' : '#ffffff' }}>
+              <AppHeader />
+              <Layout style={{ backgroundColor: appTheme === 'dark' ? '#000000' : '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+                <AppSidebar />
+                <Layout 
+                  className="transition-all duration-200" 
+                  style={{ 
+                    marginLeft: sidebarCollapsed ? 80 : 200,
+                    backgroundColor: appTheme === 'dark' ? '#000000' : '#f0f2f5',
+                    minHeight: 'calc(100vh - 64px)'
+                  }}
+                >
+                  <Content className="p-6" style={{ minHeight: 'calc(100vh - 64px)' }}>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/tasks" element={<Tasks />} />
+                      <Route path="/content" element={<ContentGenerator />} />
+                      <Route path="/content/history" element={<ContentHistory />} />
+                      <Route path="/templates" element={<TemplatesLibrary />} />
+                      <Route path="/accounts" element={<Accounts />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/state-machine" element={<StateMachineEditor />} />
+                      <Route path="/auth" element={<Navigate to="/" replace />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Content>
+                </Layout>
               </Layout>
             </Layout>
-          </Layout>
+          )}
         </AntdApp>
     </ConfigProvider>
   );

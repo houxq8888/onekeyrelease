@@ -9,9 +9,9 @@ import {
   Input, 
   Select, 
   DatePicker, 
-  message,
   Card,
-  Typography 
+  Typography,
+  App
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
+import { useTranslation } from '../hooks/useTranslation';
 import type { Task } from '../types';
 
 const { Title } = Typography;
@@ -31,23 +32,26 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  const { message } = App.useApp();
 
   // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
     const response = await apiClient.tasks.list();
-    return Array.isArray(response.data) ? response.data : [];
+    return Array.isArray(response.data.data) ? response.data.data : [];
   });
 
   // 创建任务
   const createMutation = useMutation(apiClient.tasks.create, {
     onSuccess: () => {
-      message.success('任务创建成功');
+      message.success(t('tasks.createSuccess'));
       setIsModalVisible(false);
       form.resetFields();
+      setEditingTask(null);
       queryClient.invalidateQueries('tasks');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '创建任务失败');
+      message.error(error.response?.data?.message || t('tasks.createFailed'));
     },
   });
 
@@ -56,11 +60,11 @@ const Tasks: React.FC = () => {
     (id: string) => apiClient.tasks.start(id),
     {
       onSuccess: () => {
-        message.success('任务已启动');
+        message.success(t('tasks.startSuccess'));
         queryClient.invalidateQueries('tasks');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '启动任务失败');
+        message.error(error.response?.data?.message || t('tasks.startFailed'));
       },
     }
   );
@@ -70,11 +74,11 @@ const Tasks: React.FC = () => {
     (id: string) => apiClient.tasks.delete(id),
     {
       onSuccess: () => {
-        message.success('任务删除成功');
+        message.success(t('tasks.deleteSuccess'));
         queryClient.invalidateQueries('tasks');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '删除任务失败');
+        message.error(error.response?.data?.message || t('tasks.deleteFailed'));
       },
     }
   );
@@ -89,60 +93,60 @@ const Tasks: React.FC = () => {
 
   const handleDeleteTask = (id: string) => {
     Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个任务吗？',
+      title: t('common.confirm'),
+      content: t('tasks.deleteConfirm'),
       onOk: () => deleteMutation.mutate(id),
     });
   };
 
   const columns = [
     {
-      title: '任务名称',
+      title: t('tasks.name'),
       dataIndex: 'title',
       key: 'title',
     },
     {
-      title: '描述',
+      title: t('tasks.description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
     },
     {
-      title: '状态',
+      title: t('tasks.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
         const statusConfig = {
-          pending: { color: 'default', text: '等待中' },
-          running: { color: 'processing', text: '进行中' },
-          completed: { color: 'success', text: '已完成' },
-          failed: { color: 'error', text: '失败' },
+          pending: { color: 'default', text: t('tasks.status.pending') },
+          running: { color: 'processing', text: t('tasks.status.running') },
+          completed: { color: 'success', text: t('tasks.status.completed') },
+          failed: { color: 'error', text: t('tasks.status.failed') },
         };
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     {
-      title: '类型',
+      title: t('tasks.type'),
       dataIndex: 'type',
       key: 'type',
       render: (type: string) => {
         const typeText = {
-          content_generation: '内容生成',
-          publish: '发布',
-          both: '生成并发布',
+          content_generation: t('tasks.type.content_generation'),
+          publish: t('tasks.type.publish'),
+          both: t('tasks.type.both'),
         };
         return typeText[type as keyof typeof typeText] || type;
       },
     },
     {
-      title: '创建时间',
+      title: t('tasks.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
-      title: '操作',
+      title: t('common.actions'),
       key: 'action',
       render: (_: any, record: Task) => (
         <Space size="middle">
@@ -152,7 +156,7 @@ const Tasks: React.FC = () => {
               icon={<PlayCircleOutlined />}
               onClick={() => handleStartTask(record.id)}
             >
-              启动
+              {t('tasks.start')}
             </Button>
           )}
           <Button
@@ -163,7 +167,7 @@ const Tasks: React.FC = () => {
               setIsModalVisible(true);
             }}
           >
-            编辑
+            {t('common.edit')}
           </Button>
           <Button
             type="link"
@@ -171,7 +175,7 @@ const Tasks: React.FC = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDeleteTask(record.id)}
           >
-            删除
+            {t('common.delete')}
           </Button>
         </Space>
       ),
@@ -182,7 +186,7 @@ const Tasks: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex justify-between items-center">
-        <Title level={2}>任务管理</Title>
+        <Title level={2}>{t('tasks.title')}</Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -191,7 +195,7 @@ const Tasks: React.FC = () => {
             setIsModalVisible(true);
           }}
         >
-          新建任务
+          {t('tasks.create')}
         </Button>
       </div>
 
@@ -206,18 +210,19 @@ const Tasks: React.FC = () => {
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+              t('tasks.pagination', { start: range[0], end: range[1], total }),
           }}
         />
       </Card>
 
       {/* 创建/编辑任务模态框 */}
       <Modal
-        title={editingTask ? '编辑任务' : '新建任务'}
+        title={editingTask ? t('tasks.edit') : t('tasks.create')}
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
           form.resetFields();
+          setEditingTask(null);
         }}
         footer={null}
         width={600}
@@ -232,41 +237,41 @@ const Tasks: React.FC = () => {
         >
           <Form.Item
             name="title"
-            label="任务名称"
-            rules={[{ required: true, message: '请输入任务名称' }]}
+            label={t('tasks.name')}
+            rules={[{ required: true, message: t('tasks.nameRequired') }]}
           >
-            <Input placeholder="请输入任务名称" />
+            <Input placeholder={t('tasks.namePlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="description"
-            label="任务描述"
+            label={t('tasks.description')}
           >
             <Input.TextArea 
-              placeholder="请输入任务描述"
+              placeholder={t('tasks.descriptionPlaceholder')}
               rows={3}
             />
           </Form.Item>
 
           <Form.Item
             name="type"
-            label="任务类型"
-            rules={[{ required: true, message: '请选择任务类型' }]}
+            label={t('tasks.type')}
+            rules={[{ required: true, message: t('tasks.typeRequired') }]}
           >
-            <Select placeholder="请选择任务类型">
-              <Option value="content_generation">内容生成</Option>
-              <Option value="publish">发布</Option>
-              <Option value="both">生成并发布</Option>
+            <Select placeholder={t('tasks.typePlaceholder')}>
+              <Option value="content_generation">{t('tasks.type.content_generation')}</Option>
+              <Option value="publish">{t('tasks.type.publish')}</Option>
+              <Option value="both">{t('tasks.type.both')}</Option>
             </Select>
           </Form.Item>
 
           <Form.Item
             name="publishTime"
-            label="发布时间"
+            label={t('tasks.publishTime')}
           >
             <DatePicker
               showTime
-              placeholder="选择发布时间"
+              placeholder={t('tasks.publishTimePlaceholder')}
               style={{ width: '100%' }}
             />
           </Form.Item>
@@ -278,15 +283,16 @@ const Tasks: React.FC = () => {
                 htmlType="submit"
                 loading={createMutation.isLoading}
               >
-                {editingTask ? '更新' : '创建'}
+                {editingTask ? t('common.update') : t('common.create')}
               </Button>
               <Button 
                 onClick={() => {
                   setIsModalVisible(false);
                   form.resetFields();
+                  setEditingTask(null);
                 }}
               >
-                取消
+                {t('common.cancel')}
               </Button>
             </Space>
           </Form.Item>

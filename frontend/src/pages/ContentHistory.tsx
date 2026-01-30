@@ -116,12 +116,12 @@ const ContentHistory: React.FC = () => {
   const handleEditContent = async (id: string) => {
     try {
       const response = await apiClient.content.get(id) as any;
-      setEditingContent(response.data);
+      setEditingContent(response.data.data);
       form.setFieldsValue({
-        title: response.data.title,
-        content: response.data.content,
-        hashtags: response.data.hashtags?.join(', '),
-        summary: response.data.summary,
+        title: response.data.data.title,
+        content: response.data.data.content,
+        hashtags: response.data.data.hashtags?.join(', '),
+        summary: response.data.data.summary,
       });
       setIsEditModalVisible(true);
     } catch (error: any) {

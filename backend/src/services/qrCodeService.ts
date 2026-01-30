@@ -85,6 +85,38 @@ export class QRCodeService {
   }
 
   /**
+   * 生成设备配对数据（不生成二维码，只返回数据）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generatePairingData(deviceId: string, serverUrl: string): any {
+    return {
+      type: 'device_pairing',
+      deviceId,
+      serverUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
+
+  /**
+   * 生成WebSocket连接数据（不生成二维码，只返回数据）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generateConnectionData(deviceId: string, serverUrl: string): any {
+    const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+    
+    return {
+      type: 'websocket_connection',
+      deviceId,
+      wsUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
+
+  /**
    * 生成直接URL二维码（用于快速访问）
    * @param url 要编码的URL
    * @param options 二维码选项

@@ -46,10 +46,10 @@ const ContentGenerator: React.FC = () => {
       setIsGenerating(true);
     },
     onSuccess: (response: any) => {
-      setGeneratedContent(response.data);
+      setGeneratedContent(response.data.data);
       // 保存内容ID，用于后续图片保存
-      if (response.data._id) {
-        setCurrentContentId(response.data._id);
+      if (response.data.data._id) {
+        setCurrentContentId(response.data.data._id);
       }
       message.success('内容生成成功！');
     },
@@ -113,10 +113,10 @@ const ContentGenerator: React.FC = () => {
       setIsManualSubmitting(true);
     },
     onSuccess: (response: any) => {
-      setGeneratedContent(response.data);
+      setGeneratedContent(response.data.data);
       // 保存内容ID，用于后续图片保存
-      if (response.data._id) {
-        setCurrentContentId(response.data._id);
+      if (response.data.data._id) {
+        setCurrentContentId(response.data.data._id);
       }
       message.success('内容录入成功！');
     },
