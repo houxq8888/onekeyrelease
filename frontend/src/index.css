@@ -17,44 +17,42 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: #f8fafc;
-  color: #1e293b;
 }
 
-/* 自定义滚动条 */
+/* 自定义滚动条 - 使用 CSS 变量 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--scrollbar-track, #f1f5f9);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--scrollbar-thumb, #cbd5e1);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--scrollbar-thumb-hover, #94a3b8);
 }
 
 /* 自定义组件样式 */
 .btn-primary {
-  @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  @apply font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
 .btn-secondary {
-  @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  @apply font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
 .card {
-  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  @apply rounded-lg shadow-sm p-6;
 }
 
 .input-field {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  @apply w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
 }
 
 /* 加载动画 */
@@ -101,14 +99,15 @@ body {
   }
 }
 
-/* 暗色主题支持 */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #0f172a;
-    color: #f1f5f9;
-  }
-  
-  .card {
-    @apply bg-slate-800 border-slate-700;
-  }
+/* 深色模式样式 - 使用 Ant Design 的 CSS 变量 */
+[data-theme='dark'] {
+  --scrollbar-track: #1f1f1f;
+  --scrollbar-thumb: #434343;
+  --scrollbar-thumb-hover: #555555;
+}
+
+[data-theme='light'] {
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
 }

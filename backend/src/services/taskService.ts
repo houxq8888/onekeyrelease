@@ -25,17 +25,37 @@ export class TaskService {
           result: {},
           ...taskData
         };
-        
+
         memoryStorage.addTask(newTask);
-        
+
         logger.info(`任务创建成功（内存模式）: ${newTask._id} - ${newTask.title}`);
         return newTask as ITask;
       }
 
       // 正常MongoDB操作
-      const task = new Task(taskData);
+      // 处理演示用户的特殊情况
+      const isDemoUser = taskData.createdBy === 'demo-user-id';
+
+      // 准备任务数据
+      const taskDataToSave: any = {
+        ...taskData,
+      };
+
+      // 如果不是演示用户，将 createdBy 转换为 ObjectId
+      if (!isDemoUser && taskData.createdBy) {
+        try {
+          taskDataToSave.createdBy = new mongoose.Types.ObjectId(taskData.createdBy);
+        } catch (e) {
+          // 如果转换失败，保持原值（让 Schema 验证处理）
+        }
+      } else if (isDemoUser) {
+        // 演示用户使用字符串 ID
+        taskDataToSave.createdBy = taskData.createdBy;
+      }
+
+      const task = new Task(taskDataToSave);
       await task.save();
-      
+
       logger.info(`任务创建成功: ${task._id} - ${task.title}`);
       return task;
     } catch (error: any) {

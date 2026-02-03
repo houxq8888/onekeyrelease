@@ -5,6 +5,8 @@ import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import App from './App';
 import './index.css';
+// 导入 i18n 配置
+import './i18n';
 
 // 创建React Query客户端
 const queryClient = new QueryClient({

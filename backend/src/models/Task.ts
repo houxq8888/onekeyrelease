@@ -94,7 +94,7 @@ const TaskSchema: Schema = new Schema(
       error: String,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: Schema.Types.Mixed,
       ref: 'User',
       required: true,
     },

@@ -271,7 +271,7 @@ export class QRCodeService {
     generator: (item: T) => Promise<string>
   ): Promise<Array<{ item: T; qrCode: string }>> {
     const results: Array<{ item: T; qrCode: string }> = [];
-    
+
     for (const item of items) {
       try {
         const qrCode = await generator(item);
@@ -281,7 +281,45 @@ export class QRCodeService {
         // 继续处理其他项目
       }
     }
-    
+
     return results;
+  }
+
+  /**
+   * 生成配对数据（不包含二维码图片）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generatePairingData(deviceId: string, serverUrl: string): any {
+    const pairingData = {
+      type: 'device_pairing',
+      deviceId,
+      serverUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+
+    logger.info(`生成设备配对数据: ${deviceId}`);
+    return pairingData;
+  }
+
+  /**
+   * 生成连接数据（不包含二维码图片）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generateConnectionData(deviceId: string, serverUrl: string): any {
+    const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+
+    const connectionData = {
+      type: 'websocket_connection',
+      deviceId,
+      wsUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+
+    logger.info(`生成WebSocket连接数据: ${deviceId}`);
+    return connectionData;
   }
 }

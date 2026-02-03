@@ -1,27 +1,43 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
-import { 
-  DashboardOutlined, 
-  PlayCircleOutlined, 
-  FileTextOutlined, 
-  UserOutlined, 
+import {
+  DashboardOutlined,
+  PlayCircleOutlined,
+  FileTextOutlined,
+  UserOutlined,
   SettingOutlined,
   ProjectOutlined,
   HistoryOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppStore } from '@store/appStore';
+import { useTranslation } from 'react-i18next';
+import { useAppStore } from '../../store/appStore';
 
 const { Sider } = Layout;
 
 const AppSidebar: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const isDark = theme === 'dark';
 
   const appTitle = (
-    <div className="flex items-center justify-center h-16 border-b border-gray-200">
-      <h1 className="text-xl font-bold text-gray-800">OneKeyRelease</h1>
+    <div
+      className="flex items-center justify-center h-16 border-b"
+      style={{
+        borderColor: isDark ? '#303030' : '#e5e7eb',
+      }}
+    >
+      <h1
+        className="text-xl font-bold"
+        style={{
+          color: isDark ? '#e5e7eb' : '#1f2937',
+        }}
+      >
+        OneKeyRelease
+      </h1>
     </div>
   );
 
@@ -29,49 +45,49 @@ const AppSidebar: React.FC = () => {
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: '仪表板',
+      label: t('nav.dashboard'),
     },
     {
       key: '/tasks',
       icon: <PlayCircleOutlined />,
-      label: '任务管理',
+      label: t('nav.tasks'),
     },
     {
       key: 'content',
       icon: <FileTextOutlined />,
-      label: '内容管理',
+      label: t('nav.content'),
       children: [
         {
           key: '/content',
           icon: <FileTextOutlined />,
-          label: '内容生成',
+          label: t('nav.content'),
         },
         {
           key: '/content/history',
           icon: <HistoryOutlined />,
-          label: '历史内容',
+          label: t('nav.contentHistory'),
         },
       ],
     },
     {
       key: '/templates',
       icon: <FileTextOutlined />,
-      label: '模板库',
+      label: t('nav.templates'),
     },
     {
       key: '/state-machine',
       icon: <ProjectOutlined />,
-      label: '状态机编辑器',
+      label: t('nav.stateMachine'),
     },
     {
       key: '/accounts',
       icon: <UserOutlined />,
-      label: '账号管理',
+      label: t('nav.accounts'),
     },
     {
       key: '/settings',
       icon: <SettingOutlined />,
-      label: '系统设置',
+      label: t('nav.settings'),
     },
   ];
 
@@ -80,11 +96,11 @@ const AppSidebar: React.FC = () => {
   };
 
   return (
-    <Sider 
-      trigger={null} 
-      collapsible 
+    <Sider
+      trigger={null}
+      collapsible
       collapsed={sidebarCollapsed}
-      className="fixed left-0 bg-white border-r border-gray-200"
+      className="fixed left-0 border-r"
       style={{
         overflow: 'auto',
         height: 'calc(100vh - 64px)',
@@ -92,10 +108,11 @@ const AppSidebar: React.FC = () => {
         left: 0,
         top: 64,
         bottom: 0,
-        backgroundColor: '#ffffff',
+        backgroundColor: isDark ? '#141414' : '#ffffff',
+        borderColor: isDark ? '#303030' : '#e5e7eb',
         zIndex: 5,
       }}
-      theme="light"
+      theme={isDark ? 'dark' : 'light'}
     >
       <div className="h-full flex flex-col">
         {!sidebarCollapsed && appTitle}
@@ -106,6 +123,10 @@ const AppSidebar: React.FC = () => {
             items={menuItems}
             onClick={handleMenuClick}
             className="border-none"
+            theme={isDark ? 'dark' : 'light'}
+            style={{
+              backgroundColor: isDark ? '#141414' : '#ffffff',
+            }}
           />
         </div>
       </div>
