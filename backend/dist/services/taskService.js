@@ -28,8 +28,13 @@ export class TaskService {
                 logger.info(`任务创建成功（内存模式）: ${newTask._id} - ${newTask.title}`);
                 return newTask;
             }
-            // 正常MongoDB操作
-            const task = new Task(taskData);
+            // 正常MongoDB操作 - 处理演示用户ID
+            const isDemoUser = taskData.createdBy === 'demo-user-id';
+            const createData = {
+                ...taskData,
+                createdBy: isDemoUser ? taskData.createdBy : new mongoose.Types.ObjectId(taskData.createdBy)
+            };
+            const task = new Task(createData);
             await task.save();
             logger.info(`任务创建成功: ${task._id} - ${task.title}`);
             return task;

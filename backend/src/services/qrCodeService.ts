@@ -13,18 +13,12 @@ export class QRCodeService {
    * @param options 二维码选项
    */
   static async generatePairingQRCode(
-    deviceId: string, 
+    deviceId: string,
     serverUrl: string,
     options: { width?: number; margin?: number; color?: { dark: string; light: string } } = {}
   ): Promise<string> {
     try {
-      const pairingData = {
-        type: 'device_pairing',
-        deviceId,
-        serverUrl,
-        timestamp: Date.now(),
-        version: '1.0.0'
-      };
+      const pairingData = this.generatePairingData(deviceId, serverUrl);
 
       const qrCodeData = JSON.stringify(pairingData);
       const qrCode = await QRCode.toDataURL(qrCodeData, {
@@ -45,26 +39,33 @@ export class QRCodeService {
   }
 
   /**
+   * 生成配对数据对象
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generatePairingData(deviceId: string, serverUrl: string): any {
+    return {
+      type: 'device_pairing',
+      deviceId,
+      serverUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
+
+  /**
    * 生成WebSocket连接二维码
    * @param deviceId 设备ID
    * @param serverUrl 服务器地址
    * @param options 二维码选项
    */
   static async generateConnectionQRCode(
-    deviceId: string, 
+    deviceId: string,
     serverUrl: string,
     options: { width?: number; margin?: number; color?: { dark: string; light: string } } = {}
   ): Promise<string> {
     try {
-      const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
-      
-      const connectionData = {
-        type: 'websocket_connection',
-        deviceId,
-        wsUrl,
-        timestamp: Date.now(),
-        version: '1.0.0'
-      };
+      const connectionData = this.generateConnectionData(deviceId, serverUrl);
 
       const qrCodeData = JSON.stringify(connectionData);
       const qrCode = await QRCode.toDataURL(qrCodeData, {
@@ -82,6 +83,23 @@ export class QRCodeService {
       logger.error('生成连接二维码失败', { error: error.message });
       throw new Error('生成连接二维码失败');
     }
+  }
+
+  /**
+   * 生成连接数据对象
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generateConnectionData(deviceId: string, serverUrl: string): any {
+    const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+
+    return {
+      type: 'websocket_connection',
+      deviceId,
+      wsUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
   }
 
   /**

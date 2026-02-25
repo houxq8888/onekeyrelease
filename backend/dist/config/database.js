@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
+// 内存数据库模式标志
+let useMemoryMode = false;
 // 内存数据库模拟
 const memoryData = {
     users: [],
@@ -24,6 +26,7 @@ function initializeMemoryStorage() {
     memoryData.tasks = [];
     memoryData.accounts = [];
     memoryData.content = [];
+    useMemoryMode = true;
     logger.info('内存数据库初始化完成');
 }
 export async function connectDB() {
@@ -45,6 +48,7 @@ export async function connectDB() {
             await mongoose.connection.close();
             process.exit(0);
         });
+        useMemoryMode = false;
         logger.info('Connected to MongoDB successfully');
     }
     catch (error) {
@@ -65,7 +69,13 @@ export async function disconnectDB() {
         logger.error('Error disconnecting from MongoDB:', error);
     }
 }
-export const isMongoDBConnected = () => mongoose.connection.readyState === 1;
+export const isMongoDBConnected = () => {
+    // 如果使用内存模式，返回 false
+    if (useMemoryMode) {
+        return false;
+    }
+    return mongoose.connection.readyState === 1;
+};
 // 内存数据库操作函数
 export const memoryStorage = {
     getUsers: () => memoryData.users,

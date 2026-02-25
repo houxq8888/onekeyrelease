@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select, Space, Tag, Divider, Empty, Spin, Alert, Tooltip, Modal } from 'antd';
-import { FilterOutlined, SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { Template, TemplateCategory, TemplateFilter } from '../types';
 import { apiClient } from '../utils/api';
 
@@ -15,7 +15,7 @@ const TemplatesLibrary: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<TemplateFilter>({});
+  const [filters] = useState<TemplateFilter>({});
   const [searchValue, setSearchValue] = useState('');
   const [categoryValue, setCategoryValue] = useState<TemplateCategory | undefined>();
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
@@ -35,7 +35,7 @@ const TemplatesLibrary: React.FC = () => {
         category: categoryValue || undefined,
         isFavorite: isFavoriteFilter ? 'true' : undefined
       };
-      const response = await apiClient.templates.list(params);
+      const response = await apiClient.templates.list(params) as any;
       if (response.success && response.data) {
         setTemplates(response.data);
       } else {
