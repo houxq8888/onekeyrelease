@@ -99,8 +99,9 @@ const Dashboard: React.FC = () => {
         try {
           const statusResponse = await apiClient.mobile.devices.status(device.deviceId);
           if (statusResponse.data) {
-            activeTasks += statusResponse.data.activeTasks || 0;
-            completedTasks += statusResponse.data.completedTasks || 0;
+            const statusData = statusResponse.data as any;
+            activeTasks += statusData.activeTasks || 0;
+            completedTasks += statusData.completedTasks || 0;
           }
         } catch (error) {
           console.error(`获取设备 ${device.deviceId} 状态失败:`, error);
@@ -340,7 +341,7 @@ const Dashboard: React.FC = () => {
                       title={
                         <div className="flex justify-between items-center">
                           <Text strong>{device.deviceName}</Text>
-                          <Tag color={device.isOnline ? 'green' : 'default'} size="small">
+                          <Tag color={device.isOnline ? 'green' : 'default'}>
                             {device.isOnline ? '在线' : '离线'}
                           </Tag>
                         </div>
@@ -419,7 +420,7 @@ const Dashboard: React.FC = () => {
               <Text type="secondary">向手机发送生成指令</Text>
               {mobileStatsInfo.onlineDevices > 0 && (
                 <div className="mt-2">
-                  <Tag color="green" size="small">
+                  <Tag color="green">
                     {mobileStatsInfo.onlineDevices} 设备在线
                   </Tag>
                 </div>

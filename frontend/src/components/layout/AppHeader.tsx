@@ -7,25 +7,29 @@ import {
   LogoutOutlined,
   SettingOutlined 
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 
 const { Header } = Layout;
 
 const AppHeader: React.FC = () => {
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, theme } = useAppStore();
   const { logout, user } = useAuthStore();
+  const { t } = useTranslation();
+
+  const isDark = theme === 'dark';
 
   const userMenuItems = [
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: '个人资料',
+      label: t('common.edit'),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: '设置',
+      label: t('nav.settings'),
     },
     {
       key: 'divider',
@@ -34,7 +38,7 @@ const AppHeader: React.FC = () => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: t('common.logout') || '退出登录',
       danger: true,
     },
   ];
@@ -42,7 +46,6 @@ const AppHeader: React.FC = () => {
   const handleMenuClick = ({ key }: { key: string }) => {
     switch (key) {
       case 'logout':
-        // 处理退出登录
         logout();
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
@@ -57,19 +60,37 @@ const AppHeader: React.FC = () => {
   };
 
   return (
-    <Header style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 4px rgba(0,21,41,.08)', borderBottom: '1px solid #e8e8e8', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10 }}>
+    <Header 
+      style={{ 
+        backgroundColor: isDark ? '#1f2937' : '#ffffff', 
+        boxShadow: '0 1px 4px rgba(0,21,41,.08)', 
+        borderBottom: `1px solid ${isDark ? '#374151' : '#e8e8e8'}`, 
+        padding: '0 24px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        height: 64, 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        zIndex: 10 
+      }}
+    >
       <div className="flex items-center">
         <Button
           type="text"
           icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={toggleSidebar}
-          className="text-gray-600"
+          style={{ color: isDark ? '#f3f4f6' : '#4b5563' }}
         />
       </div>
 
       <div className="flex items-center space-x-4">
         <Space>
-          <span className="text-gray-600">欢迎使用</span>
+          <span style={{ color: isDark ? '#9ca3af' : '#6b7280' }}>
+            {t('app.name')}
+          </span>
           <Dropdown
             menu={{ 
               items: userMenuItems, 
@@ -77,13 +98,20 @@ const AppHeader: React.FC = () => {
             }}
             placement="bottomRight"
           >
-            <Button type="text" className="flex items-center">
+            <Button 
+              type="text" 
+              className="flex items-center"
+              style={{ color: isDark ? '#f3f4f6' : '#374151' }}
+            >
               <Avatar 
                 size="small" 
                 icon={<UserOutlined />} 
-                className="bg-primary-500 mr-2"
+                style={{ 
+                  backgroundColor: '#0ea5e9',
+                  marginRight: '8px'
+                }}
               />
-              <span className="text-gray-700">{user?.username || '管理员'}</span>
+              <span>{user?.username || 'Admin'}</span>
             </Button>
           </Dropdown>
         </Space>
