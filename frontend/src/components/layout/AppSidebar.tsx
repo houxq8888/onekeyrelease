@@ -11,17 +11,28 @@ import {
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@store/appStore';
+import { t } from '../../locales';
 
 const { Sider } = Layout;
 
 const AppSidebar: React.FC = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed, theme, language } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
 
   const appTitle = (
-    <div className="flex items-center justify-center h-16 border-b border-gray-200">
-      <h1 className="text-xl font-bold text-gray-800">OneKeyRelease</h1>
+    <div 
+      className="flex items-center justify-center h-16"
+      style={{ 
+        borderBottom: theme === 'dark' ? '1px solid #303030' : '1px solid #e8e8e8' 
+      }}
+    >
+      <h1 
+        className="text-xl font-bold"
+        style={{ color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}
+      >
+        OneKeyRelease
+      </h1>
     </div>
   );
 
@@ -29,49 +40,49 @@ const AppSidebar: React.FC = () => {
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: '仪表板',
+      label: t('sidebar.dashboard', language),
     },
     {
       key: '/tasks',
       icon: <PlayCircleOutlined />,
-      label: '任务管理',
+      label: t('sidebar.taskManagement', language),
     },
     {
       key: 'content',
       icon: <FileTextOutlined />,
-      label: '内容管理',
+      label: t('sidebar.contentManagement', language),
       children: [
         {
           key: '/content',
           icon: <FileTextOutlined />,
-          label: '内容生成',
+          label: t('sidebar.contentGeneration', language),
         },
         {
           key: '/content/history',
           icon: <HistoryOutlined />,
-          label: '历史内容',
+          label: t('sidebar.contentHistory', language),
         },
       ],
     },
     {
       key: '/templates',
       icon: <FileTextOutlined />,
-      label: '模板库',
+      label: t('sidebar.templateLibrary', language),
     },
     {
       key: '/state-machine',
       icon: <ProjectOutlined />,
-      label: '状态机编辑器',
+      label: t('sidebar.stateMachineEditor', language),
     },
     {
       key: '/accounts',
       icon: <UserOutlined />,
-      label: '账号管理',
+      label: t('sidebar.accountManagement', language),
     },
     {
       key: '/settings',
       icon: <SettingOutlined />,
-      label: '系统设置',
+      label: t('sidebar.systemSettings', language),
     },
   ];
 
@@ -84,7 +95,7 @@ const AppSidebar: React.FC = () => {
       trigger={null} 
       collapsible 
       collapsed={sidebarCollapsed}
-      className="fixed left-0 bg-white border-r border-gray-200"
+      className="fixed left-0"
       style={{
         overflow: 'auto',
         height: 'calc(100vh - 64px)',
@@ -92,10 +103,11 @@ const AppSidebar: React.FC = () => {
         left: 0,
         top: 64,
         bottom: 0,
-        backgroundColor: '#ffffff',
+        backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
         zIndex: 5,
+        borderRight: theme === 'dark' ? '1px solid #303030' : '1px solid #e8e8e8',
       }}
-      theme="light"
+      theme={theme === 'dark' ? 'dark' : 'light'}
     >
       <div className="h-full flex flex-col">
         {!sidebarCollapsed && appTitle}
@@ -106,6 +118,9 @@ const AppSidebar: React.FC = () => {
             items={menuItems}
             onClick={handleMenuClick}
             className="border-none"
+            style={{ 
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+            }}
           />
         </div>
       </div>

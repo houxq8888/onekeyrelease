@@ -284,4 +284,48 @@ export class QRCodeService {
     
     return results;
   }
+
+  /**
+   * 生成设备配对数据（不生成二维码图片）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generatePairingData(deviceId: string, serverUrl: string): {
+    type: string;
+    deviceId: string;
+    serverUrl: string;
+    timestamp: number;
+    version: string;
+  } {
+    return {
+      type: 'device_pairing',
+      deviceId,
+      serverUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
+
+  /**
+   * 生成WebSocket连接数据（不生成二维码图片）
+   * @param deviceId 设备ID
+   * @param serverUrl 服务器地址
+   */
+  static generateConnectionData(deviceId: string, serverUrl: string): {
+    type: string;
+    deviceId: string;
+    wsUrl: string;
+    timestamp: number;
+    version: string;
+  } {
+    const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+    
+    return {
+      type: 'websocket_connection',
+      deviceId,
+      wsUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
 }

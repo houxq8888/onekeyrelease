@@ -21,6 +21,8 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
+import { useAppStore } from '../store/appStore';
+import { t } from '../locales';
 import type { Task } from '../types';
 
 const { Title } = Typography;
@@ -31,50 +33,97 @@ const Tasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { language, theme } = useAppStore();
 
-  // 获取任务列表
   const { data: tasks = [], isLoading } = useQuery<Task[]>('tasks', async () => {
-    const response = await apiClient.tasks.list();
-    return Array.isArray(response.data) ? response.data : [];
+    try {
+      const response = await apiClient.tasks.list();
+      const data = response as any;
+      if (data?.data?.tasks && Array.isArray(data.data.tasks)) {
+        return data.data.tasks;
+      }
+      if (data?.data && Array.isArray(data.data)) {
+        return data.data;
+      }
+      if (Array.isArray(data)) {
+        return data;
+      }
+      if (data?.tasks && Array.isArray(data.tasks)) {
+        return data.tasks;
+      }
+      return [];
+    } catch (error) {
+      console.error('获取任务列表失败:', error);
+      return [];
+    }
   });
 
-  // 创建任务
-  const createMutation = useMutation(apiClient.tasks.create, {
-    onSuccess: () => {
-      message.success('任务创建成功');
-      setIsModalVisible(false);
-      form.resetFields();
-      queryClient.invalidateQueries('tasks');
+  const createMutation = useMutation(
+    async (values: any) => {
+      const taskData = {
+        title: values.title,
+        description: values.description || '',
+        type: values.type === 'publish' ? 'content_publish' : 
+              values.type === 'both' ? 'batch' : 'content_generation',
+        config: {
+          contentConfig: {
+            theme: '',
+            keywords: [],
+            targetAudience: '',
+            style: 'casual' as const,
+            wordCount: 500,
+          },
+          publishConfig: values.publishTime ? {
+            platform: 'xiaohongshu' as const,
+            scheduleTime: values.publishTime.toDate ? values.publishTime.toDate() : new Date(values.publishTime),
+            autoPublish: false,
+          } : undefined,
+        },
+      };
+      return apiClient.tasks.create(taskData);
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.error || '创建任务失败');
-    },
-  });
-
-  // 启动任务
-  const startMutation = useMutation(
-    (id: string) => apiClient.tasks.start(id),
     {
       onSuccess: () => {
-        message.success('任务已启动');
+        message.success(t('tasks.taskCreated', language));
+        setIsModalVisible(false);
+        form.resetFields();
         queryClient.invalidateQueries('tasks');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '启动任务失败');
+        console.error('创建任务错误:', error);
+        const errorMsg = error?.response?.data?.error || 
+                        error?.response?.data?.message || 
+                        error?.message ||
+                        t('tasks.taskCreateFailed', language);
+        message.error(errorMsg);
       },
     }
   );
 
-  // 删除任务
+  const startMutation = useMutation(
+    (id: string) => apiClient.tasks.start(id),
+    {
+      onSuccess: () => {
+        message.success(t('tasks.taskStarted', language));
+        queryClient.invalidateQueries('tasks');
+      },
+      onError: (error: any) => {
+        console.error('启动任务错误:', error);
+        message.error(error?.response?.data?.error || t('tasks.taskStartFailed', language));
+      },
+    }
+  );
+
   const deleteMutation = useMutation(
     (id: string) => apiClient.tasks.delete(id),
     {
       onSuccess: () => {
-        message.success('任务删除成功');
+        message.success(t('tasks.taskDeleted', language));
         queryClient.invalidateQueries('tasks');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '删除任务失败');
+        console.error('删除任务错误:', error);
+        message.error(error?.response?.data?.error || t('tasks.taskDeleteFailed', language));
       },
     }
   );
@@ -89,60 +138,67 @@ const Tasks: React.FC = () => {
 
   const handleDeleteTask = (id: string) => {
     Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个任务吗？',
+      title: t('tasks.confirmDelete', language),
+      content: t('tasks.confirmDeleteMessage', language),
       onOk: () => deleteMutation.mutate(id),
     });
   };
 
+  const getStatusConfig = (status: string) => {
+    const configs: Record<string, { color: string; text: string }> = {
+      pending: { color: 'default', text: t('tasks.statusPending', language) },
+      running: { color: 'processing', text: t('tasks.statusRunning', language) },
+      completed: { color: 'success', text: t('tasks.statusCompleted', language) },
+      failed: { color: 'error', text: t('tasks.statusFailed', language) },
+      cancelled: { color: 'warning', text: '已取消' },
+    };
+    return configs[status] || configs.pending;
+  };
+
+  const getTypeText = (type: string) => {
+    const types: Record<string, string> = {
+      content_generation: t('tasks.taskTypeContentGeneration', language),
+      content_publish: t('tasks.taskTypePublish', language),
+      batch: t('tasks.taskTypeBoth', language),
+    };
+    return types[type] || type;
+  };
+
   const columns = [
     {
-      title: '任务名称',
+      title: t('tasks.taskName', language),
       dataIndex: 'title',
       key: 'title',
     },
     {
-      title: '描述',
+      title: t('tasks.taskDescription', language),
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
     },
     {
-      title: '状态',
+      title: t('tasks.status', language),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        const statusConfig = {
-          pending: { color: 'default', text: '等待中' },
-          running: { color: 'processing', text: '进行中' },
-          completed: { color: 'success', text: '已完成' },
-          failed: { color: 'error', text: '失败' },
-        };
-        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+        const config = getStatusConfig(status);
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     {
-      title: '类型',
+      title: t('tasks.taskType', language),
       dataIndex: 'type',
       key: 'type',
-      render: (type: string) => {
-        const typeText = {
-          content_generation: '内容生成',
-          publish: '发布',
-          both: '生成并发布',
-        };
-        return typeText[type as keyof typeof typeText] || type;
-      },
+      render: (type: string) => getTypeText(type),
     },
     {
-      title: '创建时间',
+      title: t('tasks.createdAt', language),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleString(),
+      render: (date: string) => date ? new Date(date).toLocaleString() : '-',
     },
     {
-      title: '操作',
+      title: t('tasks.actions', language),
       key: 'action',
       render: (_: any, record: Task) => (
         <Space size="middle">
@@ -152,7 +208,7 @@ const Tasks: React.FC = () => {
               icon={<PlayCircleOutlined />}
               onClick={() => handleStartTask(record.id)}
             >
-              启动
+              {t('tasks.start', language)}
             </Button>
           )}
           <Button
@@ -163,7 +219,7 @@ const Tasks: React.FC = () => {
               setIsModalVisible(true);
             }}
           >
-            编辑
+            {t('common.edit', language)}
           </Button>
           <Button
             type="link"
@@ -171,7 +227,7 @@ const Tasks: React.FC = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDeleteTask(record.id)}
           >
-            删除
+            {t('tasks.delete', language)}
           </Button>
         </Space>
       ),
@@ -180,9 +236,10 @@ const Tasks: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题和操作 */}
       <div className="flex justify-between items-center">
-        <Title level={2}>任务管理</Title>
+        <Title level={2} style={{ color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>
+          {t('tasks.title', language)}
+        </Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -191,12 +248,16 @@ const Tasks: React.FC = () => {
             setIsModalVisible(true);
           }}
         >
-          新建任务
+          {t('tasks.createTask', language)}
         </Button>
       </div>
 
-      {/* 任务列表 */}
-      <Card>
+      <Card 
+        style={{ 
+          backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+          borderColor: theme === 'dark' ? '#303030' : '#e8e8e8',
+        }}
+      >
         <Table
           columns={columns}
           dataSource={tasks}
@@ -206,14 +267,16 @@ const Tasks: React.FC = () => {
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+              t('tasks.pagination', language)
+                .replace('{start}', String(range[0]))
+                .replace('{end}', String(range[1]))
+                .replace('{total}', String(total)),
           }}
         />
       </Card>
 
-      {/* 创建/编辑任务模态框 */}
       <Modal
-        title={editingTask ? '编辑任务' : '新建任务'}
+        title={editingTask ? t('tasks.editTask', language) : t('tasks.createTask', language)}
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
@@ -227,46 +290,46 @@ const Tasks: React.FC = () => {
           layout="vertical"
           onFinish={handleCreateTask}
           initialValues={editingTask || {
-            type: 'both',
+            type: 'content_generation',
           }}
         >
           <Form.Item
             name="title"
-            label="任务名称"
-            rules={[{ required: true, message: '请输入任务名称' }]}
+            label={t('tasks.taskName', language)}
+            rules={[{ required: true, message: t('tasks.taskNameRequired', language) }]}
           >
-            <Input placeholder="请输入任务名称" />
+            <Input placeholder={t('tasks.taskNamePlaceholder', language)} />
           </Form.Item>
 
           <Form.Item
             name="description"
-            label="任务描述"
+            label={t('tasks.taskDescription', language)}
           >
             <Input.TextArea 
-              placeholder="请输入任务描述"
+              placeholder={t('tasks.taskDescriptionPlaceholder', language)}
               rows={3}
             />
           </Form.Item>
 
           <Form.Item
             name="type"
-            label="任务类型"
-            rules={[{ required: true, message: '请选择任务类型' }]}
+            label={t('tasks.taskType', language)}
+            rules={[{ required: true, message: t('tasks.taskTypeRequired', language) }]}
           >
-            <Select placeholder="请选择任务类型">
-              <Option value="content_generation">内容生成</Option>
-              <Option value="publish">发布</Option>
-              <Option value="both">生成并发布</Option>
+            <Select placeholder={t('tasks.taskTypePlaceholder', language)}>
+              <Option value="content_generation">{t('tasks.taskTypeContentGeneration', language)}</Option>
+              <Option value="publish">{t('tasks.taskTypePublish', language)}</Option>
+              <Option value="both">{t('tasks.taskTypeBoth', language)}</Option>
             </Select>
           </Form.Item>
 
           <Form.Item
             name="publishTime"
-            label="发布时间"
+            label={t('tasks.publishTime', language)}
           >
             <DatePicker
               showTime
-              placeholder="选择发布时间"
+              placeholder={t('tasks.publishTimePlaceholder', language)}
               style={{ width: '100%' }}
             />
           </Form.Item>
@@ -278,7 +341,7 @@ const Tasks: React.FC = () => {
                 htmlType="submit"
                 loading={createMutation.isLoading}
               >
-                {editingTask ? '更新' : '创建'}
+                {editingTask ? t('common.save', language) : t('common.create', language)}
               </Button>
               <Button 
                 onClick={() => {
@@ -286,7 +349,7 @@ const Tasks: React.FC = () => {
                   form.resetFields();
                 }}
               >
-                取消
+                {t('common.cancel', language)}
               </Button>
             </Space>
           </Form.Item>

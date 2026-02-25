@@ -10,8 +10,10 @@ export class TaskService {
    */
   static async createTask(taskData: Partial<ITask>): Promise<ITask> {
     try {
-      // 检查是否使用内存数据库模式
-      if (!isMongoDBConnected()) {
+      const isDemoUser = taskData.createdBy === 'demo-user-id';
+      
+      // 检查是否使用内存数据库模式或演示用户
+      if (!isMongoDBConnected() || isDemoUser) {
         // 内存数据库模式：创建任务
         const newTask = {
           _id: `task-${Date.now()}`,
@@ -49,8 +51,10 @@ export class TaskService {
    */
   static async getUserTasks(userId: string, page: number = 1, pageSize: number = 10, sort: string = '-createdAt'): Promise<{ tasks: ITask[]; total: number; page: number; pageSize: number }> {
     try {
-      // 检查是否使用内存数据库模式
-      if (!isMongoDBConnected()) {
+      const isDemoUser = userId === 'demo-user-id';
+      
+      // 检查是否使用内存数据库模式或演示用户
+      if (!isMongoDBConnected() || isDemoUser) {
         // 内存数据库模式：获取用户任务
         let tasks = memoryStorage.findTasksByUserId(userId);
         
@@ -83,7 +87,7 @@ export class TaskService {
         };
       }
 
-      // 正常MongoDB模式 - 检查是否为演示用户
+      // 正常MongoDB模式
       const skip = (page - 1) * pageSize;
       const sortObj: any = {};
       
@@ -93,9 +97,7 @@ export class TaskService {
         sortObj[sort] = 1;
       }
 
-      // 检查是否为演示用户ID
-      const isDemoUser = userId === 'demo-user-id';
-      const queryCondition = isDemoUser ? { createdBy: userId } : { createdBy: new mongoose.Types.ObjectId(userId) };
+      const queryCondition = { createdBy: new mongoose.Types.ObjectId(userId) };
 
       const tasks = await Task.find(queryCondition)
         .sort(sortObj)

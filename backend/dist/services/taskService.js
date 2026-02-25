@@ -9,8 +9,9 @@ export class TaskService {
      */
     static async createTask(taskData) {
         try {
-            // 检查是否使用内存数据库模式
-            if (!isMongoDBConnected()) {
+            const isDemoUser = taskData.createdBy === 'demo-user-id';
+            // 检查是否使用内存数据库模式或演示用户
+            if (!isMongoDBConnected() || isDemoUser) {
                 // 内存数据库模式：创建任务
                 const newTask = {
                     _id: `task-${Date.now()}`,
