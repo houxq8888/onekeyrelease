@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select, Space, Tag, Divider, Empty, Spin, Alert, Tooltip, Modal } from 'antd';
-import { FilterOutlined, SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, StarOutlined, StarFilled, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { Template, TemplateCategory, TemplateFilter } from '../types';
 import { apiClient } from '../utils/api';
+import { useTranslation } from 'react-i18next';
 
 const { Search } = Input;
 const { Option } = Select;
 
-// 预设分类列表
-const CATEGORIES: TemplateCategory[] = ['美食', '旅行', '美妆', '穿搭', '家居', '育儿', '其他'];
-
 const TemplatesLibrary: React.FC = () => {
+  const { t } = useTranslation();
+  const CATEGORIES: TemplateCategory[] = ['food', 'travel', 'beauty', 'fashion', 'home', 'parenting', 'other'];
+  const getCategoryLabel = (category: string) => t(`templates.categories.${category}`);
   // 状态管理
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<TemplateFilter>({});
+  const [filters] = useState<TemplateFilter>({});
   const [searchValue, setSearchValue] = useState('');
   const [categoryValue, setCategoryValue] = useState<TemplateCategory | undefined>();
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
@@ -36,14 +37,14 @@ const TemplatesLibrary: React.FC = () => {
         isFavorite: isFavoriteFilter ? 'true' : undefined
       };
       const response = await apiClient.templates.list(params);
-      if (response.success && response.data) {
-        setTemplates(response.data);
+      if (response.data) {
+        setTemplates(Array.isArray(response.data) ? response.data : []);
       } else {
-        throw new Error(response.error || '获取模板列表失败');
+        throw new Error(t('templates.fetchFailed'));
       }
     } catch (err: any) {
       console.error('获取模板列表失败:', err);
-      setError(err.message || '获取模板列表失败');
+      setError(err.message || t('templates.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ const TemplatesLibrary: React.FC = () => {
       fetchTemplates();
     } catch (err: any) {
       console.error('收藏模板失败:', err);
-      setError(err.message || '收藏模板失败');
+      setError(err.message || t('templates.favoriteFailed'));
     }
   };
 
@@ -103,7 +104,7 @@ const TemplatesLibrary: React.FC = () => {
       setTemplateToDelete(null);
     } catch (err: any) {
       console.error('删除模板失败:', err);
-      setError(err.message || '删除模板失败');
+      setError(err.message || t('templates.deleteFailed'));
     }
   };
 
@@ -122,14 +123,14 @@ const TemplatesLibrary: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">模板库</h1>
-        <p className="text-gray-600">管理和使用预设的内容模板</p>
+        <h1 className="text-2xl font-bold mb-2">{t('templates.title')}</h1>
+        <p className="text-gray-600">{t('templates.subtitle')}</p>
       </div>
 
       {/* 错误提示 */}
       {error && (
         <Alert
-          message="错误"
+          message={t('templates.error')}
           description={error}
           type="error"
           showIcon
@@ -143,7 +144,7 @@ const TemplatesLibrary: React.FC = () => {
       <Card className="mb-6">
         <Space wrap size="middle" className="w-full">
           <Search
-            placeholder="搜索模板名称或描述"
+            placeholder={t('templates.searchPlaceholder')}
             allowClear
             enterButton={<SearchOutlined />}
             size="middle"
@@ -152,7 +153,7 @@ const TemplatesLibrary: React.FC = () => {
             className="w-64"
           />
           <Select
-            placeholder="选择分类"
+            placeholder={t('templates.selectCategory')}
             allowClear
             size="middle"
             style={{ width: 150 }}
@@ -160,7 +161,7 @@ const TemplatesLibrary: React.FC = () => {
             value={categoryValue || undefined}
           >
             {CATEGORIES.map(category => (
-              <Option key={category} value={category}>{category}</Option>
+              <Option key={category} value={category}>{getCategoryLabel(category)}</Option>
             ))}
           </Select>
           <Space>
@@ -169,20 +170,20 @@ const TemplatesLibrary: React.FC = () => {
               icon={<StarOutlined />}
               onClick={() => handleFavoriteFilterChange(!isFavoriteFilter)}
             >
-              仅显示收藏
+              {t('templates.showFavoritesOnly')}
             </Button>
             <Button type="primary" icon={<PlusOutlined />}>
-              创建模板
+              {t('templates.createTemplate')}
             </Button>
           </Space>
         </Space>
       </Card>
 
       {/* 模板列表 */}
-      <Spin spinning={loading} tip="加载中...">
+      <Spin spinning={loading} tip={t('templates.loading')}>
         {templates.length === 0 ? (
           <Empty
-            description="暂无模板"
+            description={t('templates.noTemplates')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (
@@ -196,7 +197,7 @@ const TemplatesLibrary: React.FC = () => {
                   className="transition-all duration-300 hover:shadow-lg"
                   extra={(
                     <Space size="small">
-                      <Tooltip title="预览">
+                      <Tooltip title={t('templates.preview')}>
                         <Button
                           type="text"
                           icon={<EyeOutlined />}
@@ -204,7 +205,7 @@ const TemplatesLibrary: React.FC = () => {
                         />
                       </Tooltip>
                       {!template.isDefault && (
-                        <Tooltip title="编辑">
+                        <Tooltip title={t('templates.edit')}>
                           <Button
                             type="text"
                             icon={<EditOutlined />}
@@ -212,7 +213,7 @@ const TemplatesLibrary: React.FC = () => {
                         </Tooltip>
                       )}
                       {!template.isDefault && (
-                        <Tooltip title="删除">
+                        <Tooltip title={t('templates.delete')}>
                           <Button
                             type="text"
                             danger
@@ -233,22 +234,22 @@ const TemplatesLibrary: React.FC = () => {
                       style={{ color: isFavorite ? '#faad14' : undefined }}
                     />
                   </div>
-                  <Tag color="blue" className="mb-2">{template.category}</Tag>
+                  <Tag color="blue" className="mb-2">{getCategoryLabel(template.category)}</Tag>
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">{template.description}</p>
                   <Divider className="my-2" />
                   <div className="text-sm">
-                    <p><strong>标题结构:</strong> {template.titleStructure.length} 层</p>
-                    <p><strong>正文框架:</strong> {template.contentFramework.length} 部分</p>
-                    <p><strong>图片建议:</strong> {template.imageCountSuggestion} 张</p>
+                    <p><strong>{t('templates.titleStructure')}:</strong> {template.titleStructure.length} {t('templates.layers')}</p>
+                    <p><strong>{t('templates.contentFramework')}:</strong> {template.contentFramework.length} {t('templates.parts')}</p>
+                    <p><strong>{t('templates.imageCount')}:</strong> {template.imageCountSuggestion} {t('templates.images')}</p>
                     {template.tagSuggestions.length > 0 && (
                       <p>
-                        <strong>标签建议:</strong> {template.tagSuggestions.slice(0, 3).join('、')}
+                        <strong>{t('templates.tagSuggestions')}:</strong> {template.tagSuggestions.slice(0, 3).join('、')}
                         {template.tagSuggestions.length > 3 && '...'}
                       </p>
                     )}
                   </div>
                   <div className="mt-4 text-xs text-gray-500">
-                    <p>创建时间: {new Date(template.createdAt).toLocaleString()}</p>
+                    <p>{t('templates.createdAt')}: {new Date(template.createdAt).toLocaleString()}</p>
                   </div>
                 </Card>
               );
@@ -259,7 +260,7 @@ const TemplatesLibrary: React.FC = () => {
 
       {/* 模板预览模态框 */}
       <Modal
-        title="模板预览"
+        title={t('templates.previewTitle')}
         visible={previewVisible}
         onCancel={handlePreviewClose}
         footer={null}
@@ -269,12 +270,12 @@ const TemplatesLibrary: React.FC = () => {
           <div className="p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">{selectedTemplate.name}</h3>
-              <Tag color="blue">{selectedTemplate.category}</Tag>
+              <Tag color="blue">{getCategoryLabel(selectedTemplate.category)}</Tag>
             </div>
             <p className="text-gray-600 mb-4">{selectedTemplate.description}</p>
             
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-2">标题结构</h4>
+              <h4 className="text-lg font-semibold mb-2">{t('templates.titleStructure')}</h4>
               <div className="bg-gray-50 p-4 rounded">
                 {selectedTemplate.titleStructure.map((title, index) => (
                   <p key={index} className="mb-1">{title}</p>
@@ -283,7 +284,7 @@ const TemplatesLibrary: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-2">正文框架</h4>
+              <h4 className="text-lg font-semibold mb-2">{t('templates.contentFramework')}</h4>
               <div className="bg-gray-50 p-4 rounded">
                 {selectedTemplate.contentFramework.map((section, index) => (
                   <p key={index} className="mb-1">{section}</p>
@@ -292,7 +293,7 @@ const TemplatesLibrary: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-2">标签建议</h4>
+              <h4 className="text-lg font-semibold mb-2">{t('templates.tagSuggestions')}</h4>
               <div className="flex flex-wrap gap-2">
                 {selectedTemplate.tagSuggestions.map((tag, index) => (
                   <Tag key={index} color="gray">{tag}</Tag>
@@ -301,8 +302,8 @@ const TemplatesLibrary: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-2">图片数量建议</h4>
-              <p className="text-gray-800">{selectedTemplate.imageCountSuggestion} 张</p>
+              <h4 className="text-lg font-semibold mb-2">{t('templates.imageCount')}</h4>
+              <p className="text-gray-800">{selectedTemplate.imageCountSuggestion} {t('templates.images')}</p>
             </div>
           </div>
         )}
@@ -310,15 +311,15 @@ const TemplatesLibrary: React.FC = () => {
 
       {/* 删除确认模态框 */}
       <Modal
-        title="确认删除"
+        title={t('templates.confirmDelete')}
         visible={deleteConfirmVisible}
         onCancel={() => setDeleteConfirmVisible(false)}
         onOk={handleDelete}
-        okText="删除"
-        cancelText="取消"
+        okText={t('templates.delete')}
+        cancelText={t('templates.cancel')}
         okType="danger"
       >
-        <p>确定要删除该模板吗？此操作无法撤销。</p>
+        <p>{t('templates.deleteConfirmMessage')}</p>
       </Modal>
     </div>
   );

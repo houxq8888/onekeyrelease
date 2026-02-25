@@ -1,14 +1,16 @@
 import React from 'react';
-import { Card, Form, Input, Button, Switch, Select, Divider, Typography, message } from 'antd';
+import { Card, Form, Input, Button, Switch, Select, Divider, Typography, App } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'antd/es/form/Form';
+import { useAppStore } from '../store/appStore';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 interface SettingsForm {
   theme: 'light' | 'dark';
-  language: 'zh-CN' | 'en-US';
+  language: 'zh-CN' | 'zh-TW' | 'en-US';
   notifications: {
     email: boolean;
     push: boolean;
@@ -30,6 +32,9 @@ interface SettingsForm {
 const Settings: React.FC = () => {
   const [form] = useForm<SettingsForm>();
   const [loading, setLoading] = React.useState(false);
+  const { theme, language, setTheme, setLanguage } = useAppStore();
+  const { message } = App.useApp();
+  const { t } = useTranslation();
 
   // 模拟加载设置数据
   React.useEffect(() => {
@@ -37,8 +42,8 @@ const Settings: React.FC = () => {
       try {
         // 这里应该从API获取设置
         const mockSettings: SettingsForm = {
-          theme: 'light',
-          language: 'zh-CN',
+          theme,
+          language,
           notifications: {
             email: true,
             push: false,
@@ -58,7 +63,7 @@ const Settings: React.FC = () => {
         };
         form.setFieldsValue(mockSettings);
       } catch (error) {
-        message.error('加载设置失败');
+        message.error(t('settings.loadSettingsFailed'));
       }
     };
 
@@ -71,9 +76,9 @@ const Settings: React.FC = () => {
       // 这里应该调用API保存设置
       console.log('保存设置:', values);
       await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
-      message.success('设置保存成功');
+      message.success(t('settings.settingsSaved'));
     } catch (error) {
-      message.error('保存设置失败');
+      message.error(t('settings.saveSettingsFailed'));
     } finally {
       setLoading(false);
     }
@@ -81,12 +86,12 @@ const Settings: React.FC = () => {
 
   const handleReset = () => {
     form.resetFields();
-    message.info('设置已重置');
+    message.info(t('settings.settingsReset'));
   };
 
   return (
     <div className="p-6">
-      <Title level={2}>系统设置</Title>
+      <Title level={2}>{t('settings.title')}</Title>
       
       <Form
         form={form}
@@ -95,90 +100,91 @@ const Settings: React.FC = () => {
         className="max-w-4xl"
       >
         {/* 界面设置 */}
-        <Card title="界面设置" className="mb-6">
-          <Form.Item label="主题" name="theme">
-            <Select>
-              <Option value="light">浅色</Option>
-              <Option value="dark">深色</Option>
+        <Card title={t('settings.interfaceSettings')} className="mb-6">
+          <Form.Item label={t('settings.theme')}>
+            <Select 
+              value={theme}
+              onChange={(value: 'light' | 'dark') => setTheme(value)}
+            >
+              <Option value="light">{t('settings.themeLight')}</Option>
+              <Option value="dark">{t('settings.themeDark')}</Option>
             </Select>
           </Form.Item>
           
-          <Form.Item label="语言" name="language">
-            <Select>
-              <Option value="zh-CN">简体中文</Option>
-              <Option value="en-US">English</Option>
+          <Form.Item label={t('settings.language')}>
+            <Select 
+              value={language}
+              onChange={(value: 'zh-CN' | 'zh-TW' | 'en-US') => setLanguage(value)}
+            >
+              <Option value="zh-CN">{t('settings.langZhCN')}</Option>
+              <Option value="zh-TW">{t('settings.langZhTW')}</Option>
+              <Option value="en-US">{t('settings.langEnUS')}</Option>
             </Select>
           </Form.Item>
         </Card>
 
         {/* 通知设置 */}
-        <Card title="通知设置" className="mb-6">
-          <Form.Item label="邮件通知" name={['notifications', 'email']} valuePropName="checked">
+        <Card title={t('settings.notificationSettings')} className="mb-6">
+          <Form.Item label={t('settings.emailNotification')} name={['notifications', 'email']} valuePropName="checked">
             <Switch />
           </Form.Item>
           
-          <Form.Item label="推送通知" name={['notifications', 'push']} valuePropName="checked">
+          <Form.Item label={t('settings.pushNotification')} name={['notifications', 'push']} valuePropName="checked">
             <Switch />
           </Form.Item>
           
-          <Form.Item label="任务完成通知" name={['notifications', 'taskComplete']} valuePropName="checked">
+          <Form.Item label={t('settings.taskCompleteNotification')} name={['notifications', 'taskComplete']} valuePropName="checked">
             <Switch />
           </Form.Item>
           
-          <Form.Item label="任务错误通知" name={['notifications', 'taskError']} valuePropName="checked">
+          <Form.Item label={t('settings.taskErrorNotification')} name={['notifications', 'taskError']} valuePropName="checked">
             <Switch />
           </Form.Item>
         </Card>
 
-        {/* API配置 */}
-        <Card title="API配置" className="mb-6">
+        <Card title={t('settings.apiConfig')} className="mb-6">
           <Form.Item 
-            label="OpenAI API密钥" 
+            label={t('settings.openaiApiKey')} 
             name={['apiConfig', 'openaiApiKey']}
-            help="用于内容生成的AI服务"
+            help={t('settings.openaiApiKeyHelp')}
           >
-            <Input.Password placeholder="请输入OpenAI API密钥" />
+            <Input.Password placeholder={t('settings.openaiApiKeyPlaceholder')} />
           </Form.Item>
           
           <Form.Item 
-            label="Stable Diffusion URL" 
+            label={t('settings.stableDiffusionUrl')} 
             name={['apiConfig', 'stableDiffusionUrl']}
-            help="用于图片生成的AI服务地址"
+            help={t('settings.stableDiffusionUrlHelp')}
           >
-            <Input placeholder="http://localhost:7860" />
+            <Input placeholder={t('settings.stableDiffusionUrlPlaceholder')} />
           </Form.Item>
           
           <Form.Item 
-            label="API超时时间(毫秒)" 
+            label={t('settings.apiTimeout')} 
             name={['apiConfig', 'timeout']}
           >
             <Input type="number" min={1000} max={60000} />
           </Form.Item>
         </Card>
 
-        {/* 任务设置 */}
-        <Card title="任务设置" className="mb-6">
-          <Form.Item label="自动重试" name={['taskSettings', 'autoRetry']} valuePropName="checked">
+        <Card title={t('settings.taskSettings')} className="mb-6">
+          <Form.Item label={t('settings.autoRetry')} name={['taskSettings', 'autoRetry']} valuePropName="checked">
             <Switch />
           </Form.Item>
           
           <Form.Item 
-            label="最大重试次数" 
+            label={t('settings.maxRetries')} 
             name={['taskSettings', 'maxRetries']}
-            dependencies={[['taskSettings', 'autoRetry']]}
           >
-            {({ getFieldValue }) => (
-              <Input 
-                type="number" 
-                min={1} 
-                max={10} 
-                disabled={!getFieldValue(['taskSettings', 'autoRetry'])}
-              />
-            )}
+            <Input 
+              type="number" 
+              min={1} 
+              max={10} 
+            />
           </Form.Item>
           
           <Form.Item 
-            label="任务超时时间(毫秒)" 
+            label={t('settings.taskTimeout')} 
             name={['taskSettings', 'timeout']}
           >
             <Input type="number" min={30000} max={1800000} />
@@ -195,7 +201,7 @@ const Settings: React.FC = () => {
             loading={loading}
             size="large"
           >
-            保存设置
+            {t('settings.saveSettings')}
           </Button>
           
           <Button 
@@ -203,7 +209,7 @@ const Settings: React.FC = () => {
             onClick={handleReset}
             size="large"
           >
-            重置
+            {t('common.reset')}
           </Button>
         </div>
       </Form>

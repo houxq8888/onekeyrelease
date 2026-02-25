@@ -7,7 +7,7 @@ import {
   Typography,
   Tag,
   Modal,
-  message,
+  App,
   Popconfirm,
   Input,
   Select,
@@ -24,6 +24,7 @@ import {
   EditOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../utils/api';
 
 const { Title, Text } = Typography;
@@ -50,6 +51,7 @@ interface Content {
 }
 
 const ContentHistory: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [editingContent, setEditingContent] = useState<Content | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -61,6 +63,7 @@ const ContentHistory: React.FC = () => {
     status: '',
   });
   const [form] = Form.useForm();
+  const { message } = App.useApp();
 
   // 获取内容列表
   const {
@@ -74,25 +77,25 @@ const ContentHistory: React.FC = () => {
   // 删除内容
   const deleteMutation = useMutation((id: string) => apiClient.content.delete(id), {
     onSuccess: () => {
-      message.success('内容删除成功');
+      message.success(t('contentHistory.deleteSuccess'));
       refetch();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '删除失败');
+      message.error(error.response?.data?.error || t('contentHistory.deleteFailed'));
     },
   });
 
   // 更新内容
   const updateMutation = useMutation(({ id, data }: { id: string; data: any }) => apiClient.content.update(id, data), {
     onSuccess: () => {
-      message.success('内容更新成功');
+      message.success(t('contentHistory.updateSuccess'));
       setIsEditModalVisible(false);
       setEditingContent(null);
       form.resetFields();
       refetch();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '更新失败');
+      message.error(error.response?.data?.error || t('contentHistory.updateFailed'));
     },
   });
 
@@ -103,7 +106,7 @@ const ContentHistory: React.FC = () => {
       setSelectedContent(response.data);
       setIsModalVisible(true);
     } catch (error: any) {
-      message.error(error.response?.data?.error || '获取内容详情失败');
+      message.error(error.response?.data?.error || t('contentHistory.fetchDetailFailed'));
     }
   };
 
@@ -125,7 +128,7 @@ const ContentHistory: React.FC = () => {
       });
       setIsEditModalVisible(true);
     } catch (error: any) {
-      message.error(error.response?.data?.error || '获取内容详情失败');
+      message.error(error.response?.data?.error || t('contentHistory.fetchDetailFailed'));
     }
   };
 
@@ -163,63 +166,63 @@ const ContentHistory: React.FC = () => {
 
   const columns = [
     {
-      title: '标题',
+      title: t('contentHistory.title'),
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
       width: 200,
     },
     {
-      title: '主题',
+      title: t('contentHistory.theme'),
       dataIndex: 'theme',
       key: 'theme',
       width: 120,
     },
     {
-      title: '目标受众',
+      title: t('contentHistory.audience'),
       dataIndex: 'targetAudience',
       key: 'targetAudience',
       width: 100,
     },
     {
-      title: '风格',
+      title: t('contentHistory.style'),
       dataIndex: 'style',
       key: 'style',
       width: 80,
       render: (style: string) => {
         const styleMap: Record<string, string> = {
-          formal: '正式',
-          casual: '轻松',
-          professional: '专业',
-          creative: '创意',
+          formal: t('contentGenerator.formal'),
+          casual: t('contentGenerator.casual'),
+          professional: t('contentGenerator.professional'),
+          creative: t('contentGenerator.creative'),
         };
         return styleMap[style] || style;
       },
     },
     {
-      title: '状态',
+      title: t('contentHistory.status'),
       dataIndex: 'status',
       key: 'status',
       width: 80,
       render: (status: string) => {
         const statusMap: Record<string, { color: string; text: string }> = {
-          generated: { color: 'blue', text: '已生成' },
-          published: { color: 'green', text: '已发布' },
-          failed: { color: 'red', text: '失败' },
+          generated: { color: 'blue', text: t('contentHistory.generated') },
+          published: { color: 'green', text: t('contentHistory.published') },
+          failed: { color: 'red', text: t('contentHistory.failed') },
         };
         const statusInfo = statusMap[status] || { color: 'default', text: status };
         return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
       },
     },
     {
-      title: '生成时间',
+      title: t('contentHistory.generatedAt'),
       dataIndex: 'generatedAt',
       key: 'generatedAt',
       width: 150,
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
-      title: '操作',
+      title: t('contentHistory.action'),
       key: 'action',
       width: 180,
       render: (_: any, record: Content) => (
@@ -230,7 +233,7 @@ const ContentHistory: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => handleViewContent(record._id)}
           >
-            查看
+            {t('contentHistory.view')}
           </Button>
           <Button
             type="link"
@@ -238,14 +241,14 @@ const ContentHistory: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => handleEditContent(record._id)}
           >
-            编辑
+            {t('contentHistory.edit')}
           </Button>
           <Popconfirm
-            title="确认删除"
-            description="确定要删除这个内容吗？"
+            title={t('contentHistory.confirmDelete')}
+            description={t('contentHistory.confirmDeleteDesc')}
             onConfirm={() => handleDeleteContent(record._id)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('common.ok')}
+            cancelText={t('common.cancel')}
           >
             <Button
               type="link"
@@ -254,7 +257,7 @@ const ContentHistory: React.FC = () => {
               icon={<DeleteOutlined />}
               loading={deleteMutation.isLoading}
             >
-              删除
+              {t('contentHistory.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -269,13 +272,13 @@ const ContentHistory: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex justify-between items-center">
-        <Title level={2}>历史内容</Title>
+        <Title level={2}>{t('contentHistory.title')}</Title>
         <Button
           icon={<ReloadOutlined />}
           onClick={() => refetch()}
           loading={isLoading}
         >
-          刷新
+          {t('contentHistory.refresh')}
         </Button>
       </div>
 
@@ -284,7 +287,7 @@ const ContentHistory: React.FC = () => {
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={8}>
             <Input
-              placeholder="搜索主题"
+              placeholder={t('contentHistory.searchTheme')}
               prefix={<SearchOutlined />}
               value={searchParams.theme}
               onChange={(e) => handleSearch('theme', e.target.value)}
@@ -293,15 +296,15 @@ const ContentHistory: React.FC = () => {
           </Col>
           <Col xs={24} sm={8}>
             <Select
-              placeholder="选择状态"
+              placeholder={t('contentHistory.selectStatus')}
               style={{ width: '100%' }}
               value={searchParams.status || undefined}
               onChange={(value) => handleSearch('status', value)}
               allowClear
             >
-              <Option value="generated">已生成</Option>
-              <Option value="published">已发布</Option>
-              <Option value="failed">失败</Option>
+              <Option value="generated">{t('contentHistory.generated')}</Option>
+              <Option value="published">{t('contentHistory.published')}</Option>
+              <Option value="failed">{t('contentHistory.failed')}</Option>
             </Select>
           </Col>
         </Row>
@@ -321,7 +324,7 @@ const ContentHistory: React.FC = () => {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+              t('contentHistory.pagination', { 0: range[0], 1: range[1], 2: total }),
             onChange: handlePageChange,
           }}
         />
@@ -329,12 +332,12 @@ const ContentHistory: React.FC = () => {
 
       {/* 内容详情模态框 */}
       <Modal
-        title="内容详情"
+        title={t('contentHistory.detailTitle')}
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={[
           <Button key="close" onClick={() => setIsModalVisible(false)}>
-            关闭
+            {t('common.close')}
           </Button>,
         ]}
         width={800}
@@ -342,34 +345,34 @@ const ContentHistory: React.FC = () => {
         {selectedContent && (
           <div className="space-y-4">
             <div>
-              <Text strong>标题：</Text>
+              <Text strong>{t('contentHistory.title')}：</Text>
               <Text>{selectedContent.title}</Text>
             </div>
             
             <div>
-              <Text strong>主题：</Text>
+              <Text strong>{t('contentHistory.theme')}：</Text>
               <Text>{selectedContent.theme}</Text>
             </div>
             
             <div>
-              <Text strong>目标受众：</Text>
+              <Text strong>{t('contentHistory.audience')}：</Text>
               <Text>{selectedContent.targetAudience}</Text>
             </div>
             
             <div>
-              <Text strong>风格：</Text>
+              <Text strong>{t('contentHistory.style')}：</Text>
               <Text>
-                {selectedContent.style === 'formal' ? '正式' :
-                 selectedContent.style === 'casual' ? '轻松' :
-                 selectedContent.style === 'professional' ? '专业' :
-                 selectedContent.style === 'creative' ? '创意' : selectedContent.style}
+                {selectedContent.style === 'formal' ? t('contentGenerator.formal') :
+                 selectedContent.style === 'casual' ? t('contentGenerator.casual') :
+                 selectedContent.style === 'professional' ? t('contentGenerator.professional') :
+                 selectedContent.style === 'creative' ? t('contentGenerator.creative') : selectedContent.style}
               </Text>
             </div>
             
             <Divider />
             
             <div>
-              <Text strong>内容：</Text>
+              <Text strong>{t('contentHistory.resultContent')}：</Text>
               <div 
                 className="mt-2 p-3 bg-gray-50 rounded"
                 style={{ whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}
@@ -380,7 +383,7 @@ const ContentHistory: React.FC = () => {
 
             {selectedContent.hashtags && selectedContent.hashtags.length > 0 && (
               <div>
-                <Text strong>话题标签：</Text>
+                <Text strong>{t('contentHistory.resultHashtags')}：</Text>
                 <div className="mt-2">
                   {selectedContent.hashtags.map((tag: string, index: number) => (
                     <span key={index} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 mb-2">
@@ -392,25 +395,25 @@ const ContentHistory: React.FC = () => {
             )}
             
             <div>
-              <Text strong>摘要：</Text>
+              <Text strong>{t('contentHistory.resultSummary')}：</Text>
               <Text>{selectedContent.summary}</Text>
             </div>
             
             <div>
-              <Text strong>生成时间：</Text>
+              <Text strong>{t('contentHistory.generatedAt')}：</Text>
               <Text>{new Date(selectedContent.generatedAt).toLocaleString()}</Text>
             </div>
             
             {selectedContent.publishedAt && (
               <div>
-                <Text strong>发布时间：</Text>
+                <Text strong>{t('tasks.publishTime')}：</Text>
                 <Text>{new Date(selectedContent.publishedAt).toLocaleString()}</Text>
               </div>
             )}
             
             {selectedContent.publishUrl && (
               <div>
-                <Text strong>发布链接：</Text>
+                <Text strong>{t('contentHistory.publishUrl')}：</Text>
                 <a href={selectedContent.publishUrl} target="_blank" rel="noopener noreferrer">
                   {selectedContent.publishUrl}
                 </a>
@@ -422,7 +425,7 @@ const ContentHistory: React.FC = () => {
 
       {/* 编辑内容模态框 */}
       <Modal
-        title="编辑内容"
+        title={t('contentHistory.editTitle')}
         open={isEditModalVisible}
         onCancel={() => {
           setIsEditModalVisible(false);
@@ -439,19 +442,19 @@ const ContentHistory: React.FC = () => {
         >
           <Form.Item
             name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入标题' }]}
+            label={t('contentHistory.title')}
+            rules={[{ required: true, message: t('contentHistory.titlePlaceholder') }]}
           >
-            <Input placeholder="请输入内容标题" />
+            <Input placeholder={t('contentHistory.titlePlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="content"
-            label="内容"
-            rules={[{ required: true, message: '请输入内容' }]}
+            label={t('contentHistory.resultContent')}
+            rules={[{ required: true, message: t('contentHistory.contentPlaceholder') }]}
           >
             <Input.TextArea 
-              placeholder="请输入内容正文"
+              placeholder={t('contentHistory.contentPlaceholder')}
               rows={8}
               style={{ whiteSpace: 'pre-wrap' }}
             />
@@ -459,18 +462,18 @@ const ContentHistory: React.FC = () => {
 
           <Form.Item
             name="hashtags"
-            label="话题标签"
-            extra="多个标签用逗号分隔"
+            label={t('contentHistory.resultHashtags')}
+            extra={t('contentHistory.hashtagsExtra')}
           >
-            <Input placeholder="例如：美食,旅行,生活" />
+            <Input placeholder={t('contentHistory.hashtagsPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="summary"
-            label="摘要"
+            label={t('contentHistory.resultSummary')}
           >
             <Input.TextArea 
-              placeholder="请输入内容摘要"
+              placeholder={t('contentHistory.summaryPlaceholder')}
               rows={3}
             />
           </Form.Item>
@@ -482,7 +485,7 @@ const ContentHistory: React.FC = () => {
                 htmlType="submit"
                 loading={updateMutation.isLoading}
               >
-                保存修改
+                {t('contentHistory.saveEdit')}
               </Button>
               <Button 
                 onClick={() => {
@@ -491,7 +494,7 @@ const ContentHistory: React.FC = () => {
                   form.resetFields();
                 }}
               >
-                取消
+                {t('common.cancel')}
               </Button>
             </Space>
           </Form.Item>

@@ -1,5 +1,6 @@
 import User from '../models/User';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { memoryStorage, isMongoDBConnected } from '../config/database.js';
@@ -246,9 +247,12 @@ export class AuthService {
     try {
       // 检查是否是演示token
       if (token === 'demo-token') {
-        // 演示模式：返回演示用户信息
+        const demoUserId = isMongoDBConnected() 
+          ? new mongoose.Types.ObjectId('000000000000000000000001').toString()
+          : 'demo-user-id';
+        
         return {
-          _id: 'demo-user-id',
+          _id: demoUserId,
           username: '演示用户',
           email: 'demo@example.com',
           role: 'admin',

@@ -7,7 +7,7 @@ import {
   Modal, 
   Form, 
   Input, 
-  message,
+  App,
   Card,
   Typography,
   Popconfirm 
@@ -20,16 +20,19 @@ import {
   ExclamationCircleOutlined 
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../utils/api';
 import type { Account } from '../types';
 
 const { Title } = Typography;
 
 const Accounts: React.FC = () => {
+  const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // 获取账号列表
   const { data: accounts = [], isLoading } = useQuery<Account[]>('accounts', async () => {
@@ -40,13 +43,13 @@ const Accounts: React.FC = () => {
   // 创建账号
   const createMutation = useMutation(apiClient.accounts.create, {
     onSuccess: () => {
-      message.success('账号添加成功');
+      message.success(t('accounts.addSuccess'));
       setIsModalVisible(false);
       form.resetFields();
       queryClient.invalidateQueries('accounts');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '添加账号失败');
+      message.error(error.response?.data?.error || t('accounts.addFailed'));
     },
   });
 
@@ -55,11 +58,11 @@ const Accounts: React.FC = () => {
     (id: string) => apiClient.accounts.test(id),
     {
       onSuccess: () => {
-        message.success('账号测试成功');
+        message.success(t('accounts.testSuccess'));
         queryClient.invalidateQueries('accounts');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '账号测试失败');
+        message.error(error.response?.data?.error || t('accounts.testFailed'));
       },
     }
   );
@@ -69,11 +72,11 @@ const Accounts: React.FC = () => {
     (id: string) => apiClient.accounts.delete(id),
     {
       onSuccess: () => {
-        message.success('账号删除成功');
+        message.success(t('accounts.deleteSuccess'));
         queryClient.invalidateQueries('accounts');
       },
       onError: (error: any) => {
-        message.error(error.response?.data?.error || '删除账号失败');
+        message.error(error.response?.data?.error || t('accounts.deleteFailed'));
       },
     }
   );
@@ -92,42 +95,42 @@ const Accounts: React.FC = () => {
 
   const columns = [
     {
-      title: '平台',
+      title: t('accounts.platform'),
       dataIndex: 'platform',
       key: 'platform',
       render: (platform: string) => (
-        <Tag color="red">{platform === 'xiaohongshu' ? '小红书' : platform}</Tag>
+        <Tag color="red">{platform === 'xiaohongshu' ? t('accounts.xiaohongshu') : platform}</Tag>
       ),
     },
     {
-      title: '用户名',
+      title: t('accounts.username'),
       dataIndex: 'username',
       key: 'username',
     },
     {
-      title: '昵称',
+      title: t('accounts.nickname'),
       dataIndex: 'nickname',
       key: 'nickname',
     },
     {
-      title: '状态',
+      title: t('accounts.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
         const statusConfig = {
           active: { 
             color: 'success', 
-            text: '正常', 
+            text: t('accounts.statusActive'), 
             icon: <CheckCircleOutlined /> 
           },
           inactive: { 
             color: 'default', 
-            text: '未激活', 
+            text: t('accounts.statusInactive'), 
             icon: <ExclamationCircleOutlined /> 
           },
           error: { 
             color: 'error', 
-            text: '异常', 
+            text: t('accounts.statusError'), 
             icon: <ExclamationCircleOutlined /> 
           },
         };
@@ -140,19 +143,19 @@ const Accounts: React.FC = () => {
       },
     },
     {
-      title: '最后登录',
+      title: t('accounts.lastLogin'),
       dataIndex: 'lastLogin',
       key: 'lastLogin',
-      render: (date: string) => date ? new Date(date).toLocaleString() : '从未登录',
+      render: (date: string) => date ? new Date(date).toLocaleString() : t('accounts.neverLogin'),
     },
     {
-      title: '创建时间',
+      title: t('tasks.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
-      title: '操作',
+      title: t('common.action'),
       key: 'action',
       render: (_: any, record: Account) => (
         <Space size="middle">
@@ -162,7 +165,7 @@ const Accounts: React.FC = () => {
             onClick={() => handleTestAccount(record.id)}
             loading={testMutation.isLoading}
           >
-            测试
+            {t('accounts.test')}
           </Button>
           <Button
             type="link"
@@ -173,14 +176,14 @@ const Accounts: React.FC = () => {
               setIsModalVisible(true);
             }}
           >
-            编辑
+            {t('common.edit')}
           </Button>
           <Popconfirm
-            title="确认删除"
-            description="确定要删除这个账号吗？"
+            title={t('common.confirmDelete')}
+            description={t('accounts.confirmDeleteContent')}
             onConfirm={() => handleDeleteAccount(record.id)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('common.ok')}
+            cancelText={t('common.cancel')}
           >
             <Button
               type="link"
@@ -188,7 +191,7 @@ const Accounts: React.FC = () => {
               size="small"
               icon={<DeleteOutlined />}
             >
-              删除
+              {t('common.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -200,7 +203,7 @@ const Accounts: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex justify-between items-center">
-        <Title level={2}>账号管理</Title>
+        <Title level={2}>{t('menu.accounts')}</Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -209,7 +212,7 @@ const Accounts: React.FC = () => {
             setIsModalVisible(true);
           }}
         >
-          添加账号
+          {t('accounts.addAccount')}
         </Button>
       </div>
 
@@ -224,14 +227,14 @@ const Accounts: React.FC = () => {
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+              `${t('pagination.range', { start: range[0], end: range[1], total })}`,
           }}
         />
       </Card>
 
       {/* 添加/编辑账号模态框 */}
       <Modal
-        title={editingAccount ? '编辑账号' : '添加小红书账号'}
+        title={editingAccount ? t('accounts.editAccount') : t('accounts.addXiaohongshu')}
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
@@ -250,33 +253,33 @@ const Accounts: React.FC = () => {
         >
           <Form.Item
             name="platform"
-            label="平台"
+            label={t('accounts.platform')}
           >
-            <Input disabled value="小红书" />
+            <Input disabled value={t('accounts.xiaohongshu')} />
           </Form.Item>
 
           <Form.Item
             name="username"
-            label="用户名"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            label={t('accounts.username')}
+            rules={[{ required: true, message: t('validation.usernameRequired') }]}
           >
-            <Input placeholder="请输入小红书用户名" />
+            <Input placeholder={t('placeholder.xhsUsername')} />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="密码"
-            rules={[{ required: true, message: '请输入密码' }]}
+            label={t('accounts.password')}
+            rules={[{ required: true, message: t('validation.passwordRequired') }]}
           >
-            <Input.Password placeholder="请输入小红书密码" />
+            <Input.Password placeholder={t('placeholder.xhsPassword')} />
           </Form.Item>
 
           <Form.Item
             name="nickname"
-            label="昵称"
-            rules={[{ required: true, message: '请输入昵称' }]}
+            label={t('accounts.nickname')}
+            rules={[{ required: true, message: t('validation.nicknameRequired') }]}
           >
-            <Input placeholder="请输入账号昵称（用于识别）" />
+            <Input placeholder={t('placeholder.accountNickname')} />
           </Form.Item>
 
           <Form.Item>
@@ -286,7 +289,7 @@ const Accounts: React.FC = () => {
                 htmlType="submit"
                 loading={createMutation.isLoading}
               >
-                {editingAccount ? '更新' : '添加'}
+                {editingAccount ? t('common.update') : t('common.add')}
               </Button>
               <Button 
                 onClick={() => {
@@ -294,7 +297,7 @@ const Accounts: React.FC = () => {
                   form.resetFields();
                 }}
               >
-                取消
+                {t('common.cancel')}
               </Button>
             </Space>
           </Form.Item>

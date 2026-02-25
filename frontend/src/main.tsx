@@ -5,6 +5,7 @@ import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import App from './App';
 import './index.css';
+import './i18n';
 
 // 创建React Query客户端
 const queryClient = new QueryClient({

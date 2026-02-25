@@ -101,7 +101,7 @@ export interface PublishConfig {
 }
 
 // 模板相关类型
-export type TemplateCategory = '美食' | '旅行' | '美妆' | '穿搭' | '家居' | '育儿' | '其他';
+export type TemplateCategory = 'food' | 'travel' | 'beauty' | 'fashion' | 'home' | 'parenting' | 'other';
 
 export interface Template {
   id: string;

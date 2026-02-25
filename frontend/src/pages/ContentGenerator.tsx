@@ -6,7 +6,7 @@ import {
   Input, 
   Select, 
   Switch, 
-  message, 
+  App, 
   Typography, 
   Space,
   Row,
@@ -25,11 +25,13 @@ import {
 import { useMutation } from 'react-query';
 import { apiClient } from '../utils/api';
 import type { GenerationConfig } from '../types';
+import { useTranslation } from 'react-i18next';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const ContentGenerator: React.FC = () => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [manualForm] = Form.useForm();
   const [generatedContent, setGeneratedContent] = useState<any>(null);
@@ -39,6 +41,7 @@ const ContentGenerator: React.FC = () => {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isManualSubmitting, setIsManualSubmitting] = useState(false);
+  const { message } = App.useApp();
 
   // 内容生成Mutation
   const generateMutation = useMutation((data: any) => apiClient.content.generate(data), {
@@ -51,10 +54,10 @@ const ContentGenerator: React.FC = () => {
       if (response.data._id) {
         setCurrentContentId(response.data._id);
       }
-      message.success('内容生成成功！');
+      message.success(t('contentGenerator.generateSuccess'));
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '内容生成失败');
+      message.error(error.response?.data?.error || t('contentGenerator.generateFailed'));
     },
     onSettled: () => {
       setIsGenerating(false);
@@ -74,17 +77,17 @@ const ContentGenerator: React.FC = () => {
       if (currentContentId && images.length > 0) {
         try {
           await apiClient.content.saveImages(currentContentId, { images });
-          message.success('图片生成并保存成功！');
+          message.success(t('contentGenerator.imagesSavedSuccess'));
         } catch (error: any) {
           console.error('保存图片失败:', error);
-          message.success('图片生成成功！');
+          message.success(t('contentGenerator.imagesSuccess'));
         }
       } else {
-        message.success('图片生成成功！');
+        message.success(t('contentGenerator.imagesSuccess'));
       }
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '图片生成失败');
+      message.error(error.response?.data?.error || t('contentGenerator.imagesFailed'));
     },
     onSettled: () => {
       setIsGeneratingImages(false);
@@ -97,10 +100,10 @@ const ContentGenerator: React.FC = () => {
       setIsPublishing(true);
     },
     onSuccess: () => {
-      message.success('内容发布成功！');
+      message.success(t('contentGenerator.publishSuccess'));
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '内容发布失败');
+      message.error(error.response?.data?.error || t('contentGenerator.publishFailed'));
     },
     onSettled: () => {
       setIsPublishing(false);
@@ -118,10 +121,10 @@ const ContentGenerator: React.FC = () => {
       if (response.data._id) {
         setCurrentContentId(response.data._id);
       }
-      message.success('内容录入成功！');
+      message.success(t('contentGenerator.manualSuccess'));
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '内容录入失败');
+      message.error(error.response?.data?.error || t('contentGenerator.manualFailed'));
     },
     onSettled: () => {
       setIsManualSubmitting(false);
@@ -142,16 +145,16 @@ const ContentGenerator: React.FC = () => {
       type: 'publish',
       content: generatedContent,
     }).then(() => {
-      message.success('已创建发布任务');
+      message.success(t('contentGenerator.taskCreated'));
     }).catch(() => {
-      message.error('创建任务失败');
+      message.error(t('contentGenerator.taskFailed'));
     });
   };
 
   const handleGenerateImages = () => {
     const topic = form.getFieldValue('topic');
     if (!topic) {
-      message.error('请先输入主题');
+      message.error(t('contentGenerator.topicFirst'));
       return;
     }
     generateImagesMutation.mutate({ theme: topic, count: 3 });
@@ -159,7 +162,7 @@ const ContentGenerator: React.FC = () => {
 
   const handlePublish = () => {
     if (!generatedContent || generatedImages.length === 0) {
-      message.error('请先生成内容和图片');
+      message.error(t('contentGenerator.contentAndImagesFirst'));
       return;
     }
     publishMutation.mutate({
@@ -189,14 +192,14 @@ const ContentGenerator: React.FC = () => {
       label: (
         <span>
           <RocketOutlined />
-          AI生成内容
+          {t('contentGenerator.aiGenerate')}
         </span>
       ),
       children: (
         <Row gutter={[24, 24]}>
           {/* 配置表单 */}
           <Col xs={24} lg={12}>
-            <Card title="生成配置">
+            <Card title={t('contentGenerator.generateConfig')}>
               <Form
                 form={form}
                 layout="vertical"
@@ -206,32 +209,32 @@ const ContentGenerator: React.FC = () => {
                 <Form.Item
                   name="topic"
                   label="主题"
-                  rules={[{ required: true, message: '请输入主题' }]}
+                  rules={[{ required: true, message: t('contentGenerator.topicRequired') }]}
                 >
-                  <Input placeholder="例如：美妆护肤、旅行攻略、美食探店" />
+                  <Input placeholder={t('contentGenerator.topicPlaceholder')} />
                 </Form.Item>
 
                 <Form.Item
                   name="keywords"
-                  label="关键词"
+                  label={t('tasks.keywords')}
                 >
                   <Select
                     mode="tags"
-                    placeholder="输入关键词，按回车添加"
+                    placeholder={t('contentGenerator.keywordsPlaceholder')}
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
 
                 <Form.Item
                   name="targetAudience"
-                  label="目标受众"
+                  label={t('contentGenerator.targetAudience')}
                 >
-                  <Select placeholder="选择目标受众">
-                    <Option value="年轻女性">年轻女性</Option>
-                    <Option value="职场人士">职场人士</Option>
-                    <Option value="学生群体">学生群体</Option>
-                    <Option value="家庭主妇">家庭主妇</Option>
-                    <Option value="其他">其他</Option>
+                  <Select placeholder={t('contentGenerator.audiencePlaceholder')}>
+                    <Option value="年轻女性">{t('contentGenerator.youngWomen')}</Option>
+                    <Option value="职场人士">{t('contentGenerator.officeWorkers')}</Option>
+                    <Option value="学生群体">{t('contentGenerator.students')}</Option>
+                    <Option value="家庭主妇">{t('contentGenerator.housewives')}</Option>
+                    <Option value="其他">{t('contentGenerator.other')}</Option>
                   </Select>
                 </Form.Item>
 
@@ -239,24 +242,24 @@ const ContentGenerator: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="style"
-                      label="内容风格"
+                      label={t('contentGenerator.contentStyle')}
                     >
                       <Select>
-                        <Option value="casual">日常休闲</Option>
-                        <Option value="professional">专业正式</Option>
-                        <Option value="creative">创意有趣</Option>
+                        <Option value="casual">{t('contentGenerator.casual')}</Option>
+                        <Option value="professional">{t('contentGenerator.professional')}</Option>
+                        <Option value="creative">{t('contentGenerator.creative')}</Option>
                       </Select>
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
                       name="tone"
-                      label="语气语调"
+                      label={t('contentGenerator.tone')}
                     >
                       <Select>
-                        <Option value="friendly">亲切友好</Option>
-                        <Option value="formal">正式严谨</Option>
-                        <Option value="humorous">幽默风趣</Option>
+                        <Option value="friendly">{t('contentGenerator.friendly')}</Option>
+                        <Option value="formal">{t('contentGenerator.formal')}</Option>
+                        <Option value="humorous">{t('contentGenerator.humorous')}</Option>
                       </Select>
                     </Form.Item>
                   </Col>
@@ -264,12 +267,12 @@ const ContentGenerator: React.FC = () => {
 
                 <Form.Item
                   name="length"
-                  label="内容长度"
+                  label={t('contentGenerator.contentLength')}
                 >
                   <Select>
-                    <Option value="short">简短精炼</Option>
-                    <Option value="medium">适中详细</Option>
-                    <Option value="long">长篇大论</Option>
+                    <Option value="short">{t('contentGenerator.short')}</Option>
+                    <Option value="medium">{t('contentGenerator.medium')}</Option>
+                    <Option value="long">{t('contentGenerator.long')}</Option>
                   </Select>
                 </Form.Item>
 
@@ -277,7 +280,7 @@ const ContentGenerator: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="includeHashtags"
-                      label="包含话题标签"
+                      label={t('contentGenerator.includeHashtags')}
                       valuePropName="checked"
                     >
                       <Switch />
@@ -286,7 +289,7 @@ const ContentGenerator: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="includeEmojis"
-                      label="包含表情符号"
+                      label={t('contentGenerator.includeEmojis')}
                       valuePropName="checked"
                     >
                       <Switch />
@@ -303,7 +306,7 @@ const ContentGenerator: React.FC = () => {
                     size="large"
                     block
                   >
-                    生成内容
+                    {t('contentGenerator.generateContent')}
                   </Button>
                 </Form.Item>
               </Form>
@@ -313,7 +316,7 @@ const ContentGenerator: React.FC = () => {
           {/* 生成结果 */}
           <Col xs={24} lg={12}>
             <Card 
-              title="生成结果" 
+              title={t('contentGenerator.generateResult')} 
               extra={
                 generatedContent && (
                   <Space>
@@ -322,13 +325,13 @@ const ContentGenerator: React.FC = () => {
                       loading={isGeneratingImages}
                       onClick={handleGenerateImages}
                     >
-                      生成图片
+                      {t('contentGenerator.generateImages')}
                     </Button>
                     <Button 
                       icon={<DownloadOutlined />}
                       onClick={handleSaveAsTask}
                     >
-                      创建发布任务
+                      {t('contentGenerator.createPublishTask')}
                     </Button>
                     <Button 
                       type="primary"
@@ -337,7 +340,7 @@ const ContentGenerator: React.FC = () => {
                       disabled={generatedImages.length === 0}
                       onClick={handlePublish}
                     >
-                      一键发布
+                      {t('contentGenerator.oneClickPublish')}
                     </Button>
                   </Space>
                 )
@@ -346,14 +349,14 @@ const ContentGenerator: React.FC = () => {
               {generatedContent ? (
                 <div className="space-y-4">
                   <div>
-                    <Text strong>标题：</Text>
+                    <Text strong>{t('contentGenerator.titleResult')}</Text>
                     <Text>{generatedContent.title}</Text>
                   </div>
                   
                   <Divider />
                   
                   <div>
-                    <Text strong>内容：</Text>
+                    <Text strong>{t('contentGenerator.contentResult')}</Text>
                     <div 
                       className="mt-2 p-3 bg-gray-50 rounded"
                       style={{ whiteSpace: 'pre-wrap' }}
@@ -364,7 +367,7 @@ const ContentGenerator: React.FC = () => {
 
                   {generatedContent.hashtags && generatedContent.hashtags.length > 0 && (
                     <div>
-                      <Text strong>话题标签：</Text>
+                      <Text strong>{t('contentGenerator.hashtags')}</Text>
                       <div className="mt-2">
                         {generatedContent.hashtags.map((tag: string, index: number) => (
                           <span key={index} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 mb-2">
@@ -379,13 +382,13 @@ const ContentGenerator: React.FC = () => {
                   {generatedImages.length > 0 && (
                     <div>
                       <Divider />
-                      <Text strong>生成的图片：</Text>
+                      <Text strong>{t('contentGenerator.resultImages')}</Text>
                       <Row gutter={[8, 8]} className="mt-2">
                         {generatedImages.map((image, index) => (
                           <Col span={8} key={index}>
                             <Image 
                               src={image} 
-                              alt={`生成图片 ${index + 1}`}
+                              alt={`${t('contentGenerator.generateImageAlt')}${index + 1}`}
                               style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8 }}
                             />
                           </Col>
@@ -398,7 +401,7 @@ const ContentGenerator: React.FC = () => {
                 <div className="text-center py-12">
                   <RocketOutlined className="text-4xl text-gray-300 mb-4" />
                   <Text type="secondary">
-                    配置参数后点击生成内容，AI将为您创作小红书风格的优质内容
+                    {t('contentGenerator.emptyAiHint')}
                   </Text>
                 </div>
               )}
@@ -412,14 +415,14 @@ const ContentGenerator: React.FC = () => {
       label: (
         <span>
           <EditOutlined />
-          手动录入内容
+          {t('contentGenerator.manualInput')}
         </span>
       ),
       children: (
         <Row gutter={[24, 24]}>
           {/* 手动录入表单 */}
           <Col xs={24} lg={12}>
-            <Card title="内容录入">
+            <Card title={t('contentGenerator.inputTitle')}>
               <Form
                 form={manualForm}
                 layout="vertical"
@@ -427,19 +430,19 @@ const ContentGenerator: React.FC = () => {
               >
                 <Form.Item
                   name="title"
-                  label="标题"
-                  rules={[{ required: true, message: '请输入标题' }]}
+                  label={t('contentGenerator.titleLabel')}
+                  rules={[{ required: true, message: t('contentGenerator.titleRequired') }]}
                 >
-                  <Input placeholder="请输入内容标题" />
+                  <Input placeholder={t('contentGenerator.titlePlaceholder')} />
                 </Form.Item>
 
                 <Form.Item
                   name="content"
-                  label="正文"
-                  rules={[{ required: true, message: '请输入正文内容' }]}
+                  label={t('contentGenerator.contentLabel')}
+                  rules={[{ required: true, message: t('contentGenerator.contentRequired') }]}
                 >
                   <Input.TextArea 
-                    placeholder="请输入正文内容" 
+                    placeholder={t('contentGenerator.contentPlaceholder')} 
                     rows={8}
                     showCount
                     maxLength={2000}
@@ -452,7 +455,7 @@ const ContentGenerator: React.FC = () => {
                 >
                   <Select
                     mode="tags"
-                    placeholder="输入关键词，按回车添加"
+                    placeholder={t('contentGenerator.keywordsPlaceholder')}
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
@@ -460,9 +463,9 @@ const ContentGenerator: React.FC = () => {
                 <Form.Item
                   name="theme"
                   label="主题"
-                  rules={[{ required: true, message: '请输入主题' }]}
+                  rules={[{ required: true, message: t('contentGenerator.topicRequired') }]}
                 >
-                  <Input placeholder="例如：美妆护肤、旅行攻略、美食探店" />
+                  <Input placeholder={t('contentGenerator.topicPlaceholder')} />
                 </Form.Item>
 
                 <Row gutter={16}>
@@ -471,24 +474,24 @@ const ContentGenerator: React.FC = () => {
                       name="targetAudience"
                       label="目标受众"
                     >
-                      <Select placeholder="选择目标受众">
-                        <Option value="年轻女性">年轻女性</Option>
-                        <Option value="职场人士">职场人士</Option>
-                        <Option value="学生群体">学生群体</Option>
-                        <Option value="家庭主妇">家庭主妇</Option>
-                        <Option value="general">通用</Option>
+                      <Select placeholder={t('contentGenerator.audiencePlaceholder')}>
+                        <Option value="年轻女性">{t('contentGenerator.youngWomen')}</Option>
+                        <Option value="职场人士">{t('contentGenerator.officeWorkers')}</Option>
+                        <Option value="学生群体">{t('contentGenerator.students')}</Option>
+                        <Option value="家庭主妇">{t('contentGenerator.housewives')}</Option>
+                        <Option value="general">{t('contentGenerator.general')}</Option>
                       </Select>
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
                       name="style"
-                      label="内容风格"
+                      label={t('contentGenerator.contentStyle')}
                     >
                       <Select>
-                        <Option value="casual">日常休闲</Option>
-                        <Option value="professional">专业正式</Option>
-                        <Option value="creative">创意有趣</Option>
+                        <Option value="casual">{t('contentGenerator.casual')}</Option>
+                        <Option value="professional">{t('contentGenerator.professional')}</Option>
+                        <Option value="creative">{t('contentGenerator.creative')}</Option>
                       </Select>
                     </Form.Item>
                   </Col>
@@ -496,10 +499,10 @@ const ContentGenerator: React.FC = () => {
 
                 <Form.Item
                   name="summary"
-                  label="摘要"
+                  label={t('contentGenerator.summary')}
                 >
                   <Input.TextArea 
-                    placeholder="请输入内容摘要（可选）" 
+                    placeholder={t('contentGenerator.summaryPlaceholder')} 
                     rows={3}
                     showCount
                     maxLength={200}
@@ -515,7 +518,7 @@ const ContentGenerator: React.FC = () => {
                     size="large"
                     block
                   >
-                    保存内容
+                    {t('contentGenerator.saveContent')}
                   </Button>
                 </Form.Item>
               </Form>
@@ -525,7 +528,7 @@ const ContentGenerator: React.FC = () => {
           {/* 录入结果 */}
           <Col xs={24} lg={12}>
             <Card 
-              title="录入结果" 
+              title={t('contentGenerator.inputResult')} 
               extra={
                 generatedContent && (
                   <Space>
@@ -534,13 +537,13 @@ const ContentGenerator: React.FC = () => {
                       loading={isGeneratingImages}
                       onClick={handleGenerateImages}
                     >
-                      生成图片
+                      {t('contentGenerator.generateImages')}
                     </Button>
                     <Button 
                       icon={<DownloadOutlined />}
                       onClick={handleSaveAsTask}
                     >
-                      创建发布任务
+                      {t('contentGenerator.createPublishTask')}
                     </Button>
                     <Button 
                       type="primary"
@@ -549,7 +552,7 @@ const ContentGenerator: React.FC = () => {
                       disabled={generatedImages.length === 0}
                       onClick={handlePublish}
                     >
-                      一键发布
+                      {t('contentGenerator.oneClickPublish')}
                     </Button>
                   </Space>
                 )
@@ -558,14 +561,14 @@ const ContentGenerator: React.FC = () => {
               {generatedContent ? (
                 <div className="space-y-4">
                   <div>
-                    <Text strong>标题：</Text>
+                    <Text strong>{t('contentGenerator.titleResult')}</Text>
                     <Text>{generatedContent.title}</Text>
                   </div>
                   
                   <Divider />
                   
                   <div>
-                    <Text strong>内容：</Text>
+                    <Text strong>{t('contentGenerator.contentResult')}</Text>
                     <div 
                       className="mt-2 p-3 bg-gray-50 rounded"
                       style={{ whiteSpace: 'pre-wrap' }}
@@ -576,7 +579,7 @@ const ContentGenerator: React.FC = () => {
 
                   {generatedContent.keywords && generatedContent.keywords.length > 0 && (
                     <div>
-                      <Text strong>关键词：</Text>
+                      <Text strong>{t('contentGenerator.keywordResult')}</Text>
                       <div className="mt-2">
                         {generatedContent.keywords.map((keyword: string, index: number) => (
                           <span key={index} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded mr-2 mb-2">
@@ -591,13 +594,13 @@ const ContentGenerator: React.FC = () => {
                   {generatedImages.length > 0 && (
                     <div>
                       <Divider />
-                      <Text strong>生成的图片：</Text>
+                      <Text strong>{t('contentGenerator.resultImages')}</Text>
                       <Row gutter={[8, 8]} className="mt-2">
                         {generatedImages.map((image, index) => (
                           <Col span={8} key={index}>
                             <Image 
                               src={image} 
-                              alt={`生成图片 ${index + 1}`}
+                              alt={`${t('contentGenerator.generateImageAlt')}${index + 1}`}
                               style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8 }}
                             />
                           </Col>
@@ -610,7 +613,7 @@ const ContentGenerator: React.FC = () => {
                 <div className="text-center py-12">
                   <EditOutlined className="text-4xl text-gray-300 mb-4" />
                   <Text type="secondary">
-                    填写内容信息后点击保存，即可创建新的内容记录
+                    {t('contentGenerator.emptyManualHint')}
                   </Text>
                 </div>
               )}
@@ -623,7 +626,7 @@ const ContentGenerator: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Title level={2}>内容管理</Title>
+      <Title level={2}>{t('contentGenerator.title')}</Title>
       
       <Tabs 
         defaultActiveKey="ai" 

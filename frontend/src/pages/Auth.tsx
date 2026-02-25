@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Card, 
   Form, 
@@ -24,6 +25,7 @@ import { useAuthStore } from '../store/authStore';
 const { Title, Text } = Typography;
 
 const Auth: React.FC = () => {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -33,8 +35,8 @@ const Auth: React.FC = () => {
   // 登录请求
   const loginMutation = useMutation<any, any, any>(apiClient.auth.login, {
     onSuccess: (data) => {
-      console.log('登录请求成功:', data);
-      message.success('登录成功');
+      console.log('Login request success:', data);
+      message.success(t('auth.loginSuccess'));
       // 更新认证状态 - 注意后端返回的是 _id，前端期望的是 id
       const userData = {
         id: data.user?._id || data.user?.id,
@@ -51,19 +53,19 @@ const Auth: React.FC = () => {
       }, 100);
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '登录失败');
+      message.error(error.response?.data?.error || t('auth.loginFailed'));
     },
   });
 
-  // 注册请求
+  // Register request
   const registerMutation = useMutation(apiClient.auth.register, {
     onSuccess: () => {
-      message.success('注册成功，请登录');
+      message.success(t('auth.registerSuccess'));
       setIsLogin(true);
       form.resetFields();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.error || '注册失败');
+      message.error(error.response?.data?.error || t('auth.registerFailed'));
     },
   });
 
@@ -80,16 +82,16 @@ const Auth: React.FC = () => {
       <Card className="w-full max-w-md shadow-lg">
         <div className="text-center mb-6">
           <Title level={2} className="mb-2">
-            {isLogin ? '欢迎回来' : '创建账号'}
+            {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
           </Title>
           <Text type="secondary">
-            {isLogin ? '登录您的账号开始使用' : '注册新账号开始使用'}
+            {isLogin ? t('auth.loginToStart') : t('auth.registerToStart')}
           </Text>
         </div>
 
         <Alert
-          message="演示版本"
-          description="当前为演示版本，您可以使用任意用户名和密码登录"
+          message={t('auth.demoVersion')}
+          description={t('auth.demoDescription')}
           type="info"
           showIcon
           className="mb-4"
@@ -103,46 +105,46 @@ const Auth: React.FC = () => {
         >
           <Form.Item
             name="username"
-            label="用户名"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            label={t('auth.username')}
+            rules={[{ required: true, message: t('auth.enterUsername') }]}
           >
             <Input 
               prefix={<UserOutlined />} 
-              placeholder="请输入用户名"
+              placeholder={t('auth.enterUsername')}
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="密码"
-            rules={[{ required: true, message: '请输入密码' }]}
+            label={t('auth.password')}
+            rules={[{ required: true, message: t('auth.enterPassword') }]}
           >
             <Input.Password 
               prefix={<LockOutlined />} 
-              placeholder="请输入密码"
+              placeholder={t('auth.enterPassword')}
             />
           </Form.Item>
 
           {!isLogin && (
             <Form.Item
               name="confirmPassword"
-              label="确认密码"
+              label={t('auth.confirmPassword')}
               dependencies={['password']}
               rules={[
-                { required: true, message: '请确认密码' },
+                { required: true, message: t('auth.enterConfirmPassword') },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (!value || getFieldValue('password') === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error('两次输入的密码不一致'));
+                    return Promise.reject(new Error(t('auth.passwordMismatch')));
                   },
                 }),
               ]}
             >
               <Input.Password 
                 prefix={<LockOutlined />} 
-                placeholder="请再次输入密码"
+                placeholder={t('auth.enterConfirmPassword')}
               />
             </Form.Item>
           )}
@@ -155,19 +157,19 @@ const Auth: React.FC = () => {
               icon={isLogin ? <LoginOutlined /> : <UserAddOutlined />}
               loading={isLogin ? loginMutation.isLoading : registerMutation.isLoading}
             >
-              {isLogin ? '登录' : '注册'}
+              {isLogin ? t('auth.login') : t('auth.register')}
             </Button>
           </Form.Item>
         </Form>
 
         <Divider>
-          <Text type="secondary">或</Text>
+          <Text type="secondary">{t('auth.or')}</Text>
         </Divider>
 
         <div className="text-center">
           <Space>
             <Text type="secondary">
-              {isLogin ? '没有账号？' : '已有账号？'}
+              {isLogin ? t('auth.noAccount') : t('auth.haveAccount')}
             </Text>
             <Button 
               type="link" 
@@ -177,7 +179,7 @@ const Auth: React.FC = () => {
               }}
               className="p-0"
             >
-              {isLogin ? '立即注册' : '立即登录'}
+              {isLogin ? t('auth.registerNow') : t('auth.loginNow')}
             </Button>
           </Space>
         </div>

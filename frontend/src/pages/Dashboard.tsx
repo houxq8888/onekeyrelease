@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Statistic, Progress, List, Typography, Tag, Badge, Button, Modal, Form, Input, Select, message } from 'antd';
+import { Card, Row, Col, Statistic, Progress, List, Typography, Tag, Badge, Button, Modal, Form, Input, Select, App } from 'antd';
 import { 
   PlayCircleOutlined, 
   CheckCircleOutlined, 
@@ -13,21 +13,24 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../utils/api';
+import { useTranslation } from 'react-i18next';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [registerForm] = Form.useForm();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // 设备注册mutation
   const registerDeviceMutation = useMutation(
     (deviceData: any) => apiClient.mobile.devices.register(deviceData),
     {
       onSuccess: () => {
-        message.success('设备注册成功！');
+        message.success(t('device.registerSuccess'));
         setIsRegisterModalVisible(false);
         registerForm.resetFields();
         // 刷新设备列表
@@ -35,7 +38,7 @@ const Dashboard: React.FC = () => {
         queryClient.invalidateQueries('mobile-stats');
       },
       onError: (error: any) => {
-        message.error(`设备注册失败: ${error.response?.data?.message || error.message}`);
+        message.error(`${t('device.registerFailed', { message: error.response?.data?.message || error.message })}`);
       }
     }
   );
@@ -99,8 +102,8 @@ const Dashboard: React.FC = () => {
         try {
           const statusResponse = await apiClient.mobile.devices.status(device.deviceId);
           if (statusResponse.data) {
-            activeTasks += statusResponse.data.activeTasks || 0;
-            completedTasks += statusResponse.data.completedTasks || 0;
+            activeTasks += (statusResponse.data as any).activeTasks || 0;
+            completedTasks += (statusResponse.data as any).completedTasks || 0;
           }
         } catch (error) {
           console.error(`获取设备 ${device.deviceId} 状态失败:`, error);
@@ -138,9 +141,9 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题 */}
       <div>
-        <Title level={2}>仪表板</Title>
+        <Title level={2}>{t('menu.dashboard')}</Title>
         <Text type="secondary">
-          查看任务统计和最近活动
+          {t('dashboard.subtitle')}
         </Text>
       </div>
 
@@ -149,7 +152,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="总任务数"
+              title={t('dashboard.totalTasks')}
               value={stats.total}
               prefix={<ClockCircleOutlined />}
               valueStyle={{ color: '#3b82f6' }}
@@ -159,7 +162,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="进行中"
+              title={t('dashboard.running')}
               value={stats.running}
               prefix={<PlayCircleOutlined />}
               valueStyle={{ color: '#f59e0b' }}
@@ -169,7 +172,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="已完成"
+              title={t('dashboard.completed')}
               value={stats.completed}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#10b981' }}
@@ -179,7 +182,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="失败"
+              title={t('dashboard.failed')}
               value={stats.failed}
               prefix={<ExclamationCircleOutlined />}
               valueStyle={{ color: '#ef4444' }}
@@ -191,7 +194,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="连接设备"
+              title={t('dashboard.connectedDevices')}
               value={mobileStatsInfo.totalDevices}
               prefix={<MobileOutlined />}
               valueStyle={{ color: '#8b5cf6' }}
@@ -199,7 +202,7 @@ const Dashboard: React.FC = () => {
             <div className="mt-2">
               <Tag color={mobileStatsInfo.onlineDevices > 0 ? 'green' : 'default'}>
                 {mobileStatsInfo.onlineDevices > 0 ? <WifiOutlined /> : <DisconnectOutlined />}
-                {mobileStatsInfo.onlineDevices} 在线
+                {mobileStatsInfo.onlineDevices} {t('dashboard.deviceOnline')}
               </Tag>
             </div>
           </Card>
@@ -207,14 +210,14 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={4}>
           <Card>
             <Statistic
-              title="移动端任务"
+              title={t('dashboard.mobileTasks')}
               value={mobileStatsInfo.activeTasks + mobileStatsInfo.completedTasks}
               prefix={<MessageOutlined />}
               valueStyle={{ color: '#06b6d4' }}
             />
             <div className="mt-2">
               <Text type="secondary" className="text-xs">
-                活跃: {mobileStatsInfo.activeTasks} | 完成: {mobileStatsInfo.completedTasks}
+                {t('dashboard.running')}: {mobileStatsInfo.activeTasks} | {t('dashboard.completed')}: {mobileStatsInfo.completedTasks}
               </Text>
             </div>
           </Card>
@@ -224,7 +227,7 @@ const Dashboard: React.FC = () => {
       {/* 进度和最近任务 */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={8}>
-          <Card title="任务完成率">
+          <Card title={t('dashboard.taskCompletionRate')}>
             <div className="text-center">
               <Progress
                 type="circle"
@@ -236,7 +239,7 @@ const Dashboard: React.FC = () => {
               />
               <div className="mt-4">
                 <Text type="secondary">
-                  已完成 {stats.completed} / {stats.total} 个任务
+                  {t('dashboard.completedOfTotal', { completed: stats.completed, total: stats.total })}
                 </Text>
               </div>
             </div>
@@ -244,7 +247,7 @@ const Dashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} lg={8}>
-          <Card title="最近任务">
+          <Card title={t('dashboard.recentTasks')}>
             <List
               dataSource={recentTasks || []}
               renderItem={(task: any) => (
@@ -261,9 +264,9 @@ const Dashboard: React.FC = () => {
                             task.status === 'running' ? 'warning' : 'secondary'
                           }
                         >
-                          {task.status === 'completed' ? '已完成' :
-                           task.status === 'failed' ? '失败' :
-                           task.status === 'running' ? '进行中' : '等待中'}
+                          {task.status === 'completed' ? t('tasks.statusCompleted') :
+                           task.status === 'failed' ? t('tasks.statusFailed') :
+                           task.status === 'running' ? t('tasks.statusRunning') : t('tasks.statusPending')}
                         </Text>
                       </div>
                     }
@@ -279,7 +282,7 @@ const Dashboard: React.FC = () => {
           <Card 
             title={
               <div className="flex justify-between items-center">
-                <span>移动端设备连接</span>
+                <span>{t('dashboard.mobileDeviceConnection')}</span>
                 <Button 
                   type="primary" 
                   size="small" 
@@ -287,14 +290,14 @@ const Dashboard: React.FC = () => {
                   onClick={() => {
                     registerForm.setFieldsValue({
                       deviceId: generateDeviceId(),
-                      deviceName: `我的手机_${new Date().getHours()}${new Date().getMinutes()}`,
+                      deviceName: `${t('dashboard.defaultDeviceName', { time: `${new Date().getHours()}${new Date().getMinutes()}` })}`,
                       platform: 'android',
                       version: '1.0.0'
                     });
                     setIsRegisterModalVisible(true);
                   }}
                 >
-                  注册设备
+                  {t('dashboard.registerDevice')}
                 </Button>
               </div>
             }
@@ -303,7 +306,7 @@ const Dashboard: React.FC = () => {
               <div className="text-center py-8">
                 <MobileOutlined style={{ fontSize: 48, color: '#d1d5db' }} />
                 <div className="mt-4">
-                  <Text type="secondary">暂无连接的移动设备</Text>
+                  <Text type="secondary">{t('dashboard.noMobileDevices')}</Text>
                 </div>
                 <div className="mt-4">
                   <Button 
@@ -312,14 +315,14 @@ const Dashboard: React.FC = () => {
                     onClick={() => {
                       registerForm.setFieldsValue({
                         deviceId: generateDeviceId(),
-                        deviceName: `我的手机_${new Date().getHours()}${new Date().getMinutes()}`,
+                        deviceName: `${t('dashboard.defaultDeviceName', { time: `${new Date().getHours()}${new Date().getMinutes()}` })}`,
                         platform: 'android',
                         version: '1.0.0'
                       });
                       setIsRegisterModalVisible(true);
                     }}
                   >
-                    注册新设备
+                    {t('dashboard.registerNewDevice')}
                   </Button>
                 </div>
               </div>
@@ -340,8 +343,8 @@ const Dashboard: React.FC = () => {
                       title={
                         <div className="flex justify-between items-center">
                           <Text strong>{device.deviceName}</Text>
-                          <Tag color={device.isOnline ? 'green' : 'default'} size="small">
-                            {device.isOnline ? '在线' : '离线'}
+                          <Tag color={device.isOnline ? 'green' : 'default'}>
+                            {device.isOnline ? t('dashboard.deviceOnline') : t('dashboard.deviceOffline')}
                           </Tag>
                         </div>
                       }
@@ -351,10 +354,10 @@ const Dashboard: React.FC = () => {
                             ID: {device.deviceId}
                           </Text>
                           <Text type="secondary" className="block text-xs">
-                            平台: {device.platform === 'android' ? 'Android' : 'iOS'}
+                            {t('dashboard.platform')}: {device.platform === 'android' ? 'Android' : 'iOS'}
                           </Text>
                           <Text type="secondary" className="block text-xs">
-                            最后活跃: {new Date(device.lastActiveAt).toLocaleString()}
+                            {t('dashboard.lastActive')}: {new Date(device.lastActiveAt).toLocaleString()}
                           </Text>
                         </div>
                       }
@@ -368,7 +371,7 @@ const Dashboard: React.FC = () => {
       </Row>
 
       {/* 快速操作 */}
-      <Card title="快速操作">
+      <Card title={t('dashboard.quickActions')}>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={6}>
             <Card 
@@ -376,8 +379,8 @@ const Dashboard: React.FC = () => {
               className="text-center cursor-pointer"
               onClick={() => window.location.href = '/content'}
             >
-              <Title level={4}>🎨 生成内容</Title>
-              <Text type="secondary">使用AI生成小红书内容</Text>
+              <Title level={4}>{t('dashboard.generateContent')}</Title>
+              <Text type="secondary">{t('dashboard.generateContentDesc')}</Text>
             </Card>
           </Col>
           <Col xs={24} sm={6}>
@@ -386,8 +389,8 @@ const Dashboard: React.FC = () => {
               className="text-center cursor-pointer"
               onClick={() => window.location.href = '/tasks'}
             >
-              <Title level={4}>🚀 创建任务</Title>
-              <Text type="secondary">设置发布任务</Text>
+              <Title level={4}>{t('dashboard.createTask')}</Title>
+              <Text type="secondary">{t('dashboard.createTaskDesc')}</Text>
             </Card>
           </Col>
           <Col xs={24} sm={6}>
@@ -396,8 +399,8 @@ const Dashboard: React.FC = () => {
               className="text-center cursor-pointer"
               onClick={() => window.location.href = '/accounts'}
             >
-              <Title level={4}>👤 管理账号</Title>
-              <Text type="secondary">添加和管理小红书账号</Text>
+              <Title level={4}>{t('dashboard.manageAccounts')}</Title>
+              <Text type="secondary">{t('dashboard.manageAccountsDesc')}</Text>
             </Card>
           </Col>
           <Col xs={24} sm={6}>
@@ -411,16 +414,16 @@ const Dashboard: React.FC = () => {
                   window.location.href = '/mobile';
                 } else {
                   // 如果没有在线设备，提示用户
-                  alert('当前没有在线的移动设备，请先确保移动设备已连接');
+                  message.warning(t('dashboard.noOnlineDevices'));
                 }
               }}
             >
-              <Title level={4}>📱 移动指令</Title>
-              <Text type="secondary">向手机发送生成指令</Text>
+              <Title level={4}>{t('dashboard.mobileCommands')}</Title>
+              <Text type="secondary">{t('dashboard.mobileCommandsDesc')}</Text>
               {mobileStatsInfo.onlineDevices > 0 && (
                 <div className="mt-2">
-                  <Tag color="green" size="small">
-                    {mobileStatsInfo.onlineDevices} 设备在线
+                  <Tag color="green">
+                    {t('dashboard.onlineDevices', { count: mobileStatsInfo.onlineDevices })}
                   </Tag>
                 </div>
               )}
@@ -431,7 +434,7 @@ const Dashboard: React.FC = () => {
 
       {/* 设备注册模态框 */}
       <Modal
-        title="注册移动端设备"
+        title={t('device.registerDeviceTitle')}
         open={isRegisterModalVisible}
         onCancel={() => setIsRegisterModalVisible(false)}
         footer={null}
@@ -443,50 +446,50 @@ const Dashboard: React.FC = () => {
           onFinish={handleRegisterDevice}
         >
           <Form.Item
-            label="设备ID"
+            label={t('device.deviceId')}
             name="deviceId"
-            rules={[{ required: true, message: '请输入设备ID' }]}
+            rules={[{ required: true, message: t('device.deviceIdRequired') }]}
           >
-            <Input placeholder="自动生成的设备唯一标识符" />
+            <Input placeholder={t('device.deviceIdPlaceholder')} />
           </Form.Item>
           
           <Form.Item
-            label="设备名称"
+            label={t('device.deviceName')}
             name="deviceName"
-            rules={[{ required: true, message: '请输入设备名称' }]}
+            rules={[{ required: true, message: t('device.deviceNameRequired') }]}
           >
-            <Input placeholder="例如：我的iPhone 15" />
+            <Input placeholder={t('device.deviceNamePlaceholder')} />
           </Form.Item>
           
           <Form.Item
-            label="平台类型"
+            label={t('device.platform')}
             name="platform"
-            rules={[{ required: true, message: '请选择平台类型' }]}
+            rules={[{ required: true, message: t('device.platformRequired') }]}
           >
-            <Select placeholder="选择设备平台">
+            <Select placeholder={t('device.platformPlaceholder')}>
               <Option value="android">Android</Option>
               <Option value="ios">iOS</Option>
             </Select>
           </Form.Item>
           
           <Form.Item
-            label="应用版本"
+            label={t('device.appVersion')}
             name="version"
           >
-            <Input placeholder="例如：1.0.0" />
+            <Input placeholder={t('device.appVersionPlaceholder')} />
           </Form.Item>
           
           <Form.Item>
             <div className="flex justify-end space-x-2">
               <Button onClick={() => setIsRegisterModalVisible(false)}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button 
                 type="primary" 
                 htmlType="submit"
                 loading={registerDeviceMutation.isLoading}
               >
-                注册设备
+                {t('dashboard.registerDevice')}
               </Button>
             </div>
           </Form.Item>
@@ -494,7 +497,7 @@ const Dashboard: React.FC = () => {
         
         <div className="mt-4 p-3 bg-blue-50 rounded">
           <Text type="secondary" className="text-xs">
-            💡 提示：注册后，您需要在移动设备上使用相同的设备ID进行连接
+            💡 {t('device.registerTip')}
           </Text>
         </div>
       </Modal>

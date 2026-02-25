@@ -44,6 +44,16 @@ export class QRCodeService {
     }
   }
 
+  static generatePairingData(deviceId: string, serverUrl: string) {
+    return {
+      type: 'device_pairing',
+      deviceId,
+      serverUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
+  }
+
   /**
    * 生成WebSocket连接二维码
    * @param deviceId 设备ID
@@ -82,6 +92,17 @@ export class QRCodeService {
       logger.error('生成连接二维码失败', { error: error.message });
       throw new Error('生成连接二维码失败');
     }
+  }
+
+  static generateConnectionData(deviceId: string, serverUrl: string) {
+    const wsUrl = serverUrl.replace('http', 'ws') + `/ws/mobile?deviceId=${deviceId}`;
+    return {
+      type: 'websocket_connection',
+      deviceId,
+      wsUrl,
+      timestamp: Date.now(),
+      version: '1.0.0'
+    };
   }
 
   /**
